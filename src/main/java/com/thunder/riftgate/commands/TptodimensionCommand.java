@@ -23,7 +23,7 @@ public class TptodimensionCommand {
     public static void registerCommand(RegisterCommandsEvent event) {
         event.getDispatcher().register(
                 Commands.literal("tptodimension")
-                        .requires(source -> source.hasPermission(4))
+                        .requires(source -> source.hasPermission(1))
                         .then(Commands.argument("target_entity", EntityArgument.entity())
                                 .then(Commands.argument("dimension", DimensionArgument.dimension())
                                         .executes(ctx -> executeCommand(ctx, null)) // No coords, uses default spawn
