@@ -148,7 +148,7 @@ var generateModMetadata = tasks.register("generateModMetadata", ProcessResources
             mod_id                 : "riftgate",
             mod_name               : "Rift Gate",
             mod_license            : mod_license,
-            mod_version            : "2.0.0",
+            mod_version            : "2.1.0",
             mod_authors            : "thunderrock424242",
             mod_description        : mod_description
     ]

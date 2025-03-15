@@ -2,21 +2,24 @@ package com.thunder.riftgate;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.protocol.game.*;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.TicketType;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LightningBolt;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
+import java.util.Objects;
 
 public class TPProcedure {
 
@@ -33,9 +36,17 @@ public class TPProcedure {
             applyPreTeleportEffects(entity);
         }
 
+        // Preload the chunk to avoid "position not loaded" error
+        BlockPos targetPos = new BlockPos((int) x, (int) y, (int) z);
+        ChunkPos chunkPos = new ChunkPos(targetPos);
+        targetDimension.getChunkSource().addRegionTicket(TicketType.POST_TELEPORT, chunkPos, 2, commandUser.getId());
+
         // Delay teleportation slightly for effects to be visible
-        commandUser.level().getServer().execute(() -> {
-            BlockPos safePos = findSafePosition(targetDimension, new BlockPos((int) x, (int) y, (int) z));
+        Objects.requireNonNull(commandUser.level().getServer()).execute(() -> {
+            // Ensure the area is fully loaded before teleporting
+            targetDimension.getChunk(chunkPos.x, chunkPos.z);
+
+            BlockPos safePos = findSafePosition(targetDimension, targetPos);
 
             // Apply wormhole distortion effect
             for (Entity entity : entitiesToTeleport) {
@@ -70,27 +81,23 @@ public class TPProcedure {
     private static void applyPreTeleportEffects(Entity entity) {
         ServerLevel world = (ServerLevel) entity.level();
 
-        // 1️⃣ Floating Text (Holographic Grid Effect)
         if (entity instanceof Player player) {
             player.sendSystemMessage(Component.literal("§b[Wormhole Engaged...]"));
         }
 
-        // 2️⃣ Glowing Outline
-        if (entity instanceof net.minecraft.world.entity.LivingEntity livingEntity) {
+        if (entity instanceof LivingEntity livingEntity) {
             livingEntity.addEffect(new MobEffectInstance(MobEffects.GLOWING, 40, 0, false, false));
         }
 
-        // 3️⃣ Scanning Beam Effect (Conduit Power-like glow)
         if (entity instanceof Player player) {
             player.addEffect(new MobEffectInstance(MobEffects.LEVITATION, 20, 1, false, false));
         }
 
-        // 4️⃣ Play futuristic sound effect
         world.playSound(null, entity.blockPosition(), SoundEvents.BEACON_ACTIVATE, entity.getSoundSource(), 1.0F, 1.2F);
     }
 
     private static void applyPostTeleportEffects(Entity entity) {
-        if (entity instanceof net.minecraft.world.entity.LivingEntity livingEntity) {
+        if (entity instanceof LivingEntity livingEntity) {
             livingEntity.removeEffect(MobEffects.GLOWING);
         }
     }

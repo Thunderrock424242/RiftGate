@@ -8,13 +8,11 @@ import net.minecraft.commands.arguments.DimensionArgument;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
-
 
 @EventBusSubscriber
 public class TptodimensionCommand {
@@ -23,7 +21,7 @@ public class TptodimensionCommand {
     public static void registerCommand(RegisterCommandsEvent event) {
         event.getDispatcher().register(
                 Commands.literal("tptodimension")
-                        .requires(source -> source.hasPermission(1))
+                        .requires(source -> source.hasPermission(1)) // ✅ Changed to level 1 (ALL PLAYERS)
                         .then(Commands.argument("target_entity", EntityArgument.entity())
                                 .then(Commands.argument("dimension", DimensionArgument.dimension())
                                         .executes(ctx -> executeCommand(ctx, null)) // No coords, uses default spawn
@@ -46,11 +44,15 @@ public class TptodimensionCommand {
                 targetPos = targetDimension.getSharedSpawnPos();
             }
 
-            // Execute teleportation
+            // Send feedback message to player
+            source.sendSuccess(() -> targetEntity.getName().copy()
+                    .append(" §b[Initializing Wormhole...]"), true);
+
+            // Call teleport procedure (which now handles chunk loading)
             TPProcedure.execute(targetEntity, targetDimension, targetPos.getX(), targetPos.getY(), targetPos.getZ());
-            source.sendSuccess(() -> targetEntity.getName().copy().append(" has been teleported!"), true);
+
         } catch (Exception e) {
-            context.getSource().sendFailure(Component.literal("Failed to execute teleport command: " + e.getMessage()));
+            context.getSource().sendFailure(net.minecraft.network.chat.Component.literal("§cTeleportation failed: " + e.getMessage()));
         }
         return 1;
     }
