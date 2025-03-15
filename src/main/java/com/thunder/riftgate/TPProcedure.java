@@ -1,18 +1,14 @@
 package com.thunder.riftgate;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Holder;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.protocol.game.ClientboundGameEventPacket;
-import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket;
-import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket;
-import net.minecraft.network.protocol.game.ClientboundSoundPacket;
+import net.minecraft.network.protocol.game.*;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.Blocks;
@@ -38,7 +34,7 @@ public class TPProcedure {
         }
 
         // Delay teleportation slightly for effects to be visible
-        commandUser.getLevel().getServer().execute(() -> {
+        commandUser.level().getServer().execute(() -> {
             BlockPos safePos = findSafePosition(targetDimension, new BlockPos((int) x, (int) y, (int) z));
 
             // Apply wormhole distortion effect
@@ -72,46 +68,44 @@ public class TPProcedure {
     }
 
     private static void applyPreTeleportEffects(Entity entity) {
-        ServerLevel world = (ServerLevel) entity.getLevel();
+        ServerLevel world = (ServerLevel) entity.level();
 
-        // 1️⃣ Screen Fade to Black Effect
+        // 1️⃣ Floating Text (Holographic Grid Effect)
         if (entity instanceof Player player) {
-            fadeScreen(player);
+            player.sendSystemMessage(Component.literal("§b[Wormhole Engaged...]"));
         }
 
-        // 2️⃣ Floating Text (Holographic Grid Effect)
-        if (entity instanceof Player player) {
-            player.displayClientMessage(Component.literal("§b[Wormhole Engaged...]"), true);
+        // 2️⃣ Glowing Outline
+        if (entity instanceof net.minecraft.world.entity.LivingEntity livingEntity) {
+            livingEntity.addEffect(new MobEffectInstance(MobEffects.GLOWING, 40, 0, false, false));
         }
 
-        // 3️⃣ Glowing Outline
-        entity.setGlowing(true);
-
-        // 4️⃣ Scanning Beam Effect (Conduit Power-like glow)
+        // 3️⃣ Scanning Beam Effect (Conduit Power-like glow)
         if (entity instanceof Player player) {
-            player.addEffect(new MobEffectInstance(MobEffects.GLOWING, 40, 0, false, false));
             player.addEffect(new MobEffectInstance(MobEffects.LEVITATION, 20, 1, false, false));
         }
 
-        // 5️⃣ Play futuristic sound effect
+        // 4️⃣ Play futuristic sound effect
         world.playSound(null, entity.blockPosition(), SoundEvents.BEACON_ACTIVATE, entity.getSoundSource(), 1.0F, 1.2F);
     }
 
     private static void applyPostTeleportEffects(Entity entity) {
-        entity.setGlowing(false);
+        if (entity instanceof net.minecraft.world.entity.LivingEntity livingEntity) {
+            livingEntity.removeEffect(MobEffects.GLOWING);
+        }
     }
 
     private static void applyWormholeDistortion(Entity entity) {
         if (entity instanceof Player player) {
-            player.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.PUFFER_FISH_STING, 0));
+            player.sendSystemMessage(Component.literal("§b[Entering Wormhole...]"));
             player.addEffect(new MobEffectInstance(MobEffects.CONFUSION, 40, 0, false, false));
-            player.connection.send(new ClientboundSoundPacket((Holder<SoundEvent>) SoundEvents.PORTAL_TRAVEL, player.getSoundSource(), player.getX(), player.getY(), player.getZ(), 1.0F, 0.5F, player.getRandom().nextLong()));
+            player.level().playSound(null, player.blockPosition(), SoundEvents.PORTAL_TRAVEL, player.getSoundSource(), 1.0F, 0.5F);
             spawnWormholeParticles(player);
         }
     }
 
     private static void spawnWormholeParticles(Entity entity) {
-        ServerLevel world = (ServerLevel) entity.getLevel();
+        ServerLevel world = (ServerLevel) entity.level();
         for (int i = 0; i < 50; i++) {
             world.sendParticles(
                     net.minecraft.core.particles.ParticleTypes.DRAGON_BREATH,
@@ -127,14 +121,8 @@ public class TPProcedure {
         }
     }
 
-    private static void fadeScreen(Player player) {
-        player.connection.send(new ClientboundSetTitleTextPacket(Component.literal("§b[Entering Wormhole...]")));
-        player.connection.send(new ClientboundSetSubtitleTextPacket(Component.literal("")));
-        player.connection.send(new ClientboundSetTitleAnimationPacket(20, 60, 20)); // 1 sec fade in, 3 sec hold, 1 sec fade out
-    }
-
     private static void summonLightning(ServerLevel world, BlockPos pos) {
-        LightningBolt lightning = new LightningBolt(world);
+        LightningBolt lightning = new LightningBolt(EntityType.LIGHTNING_BOLT, world);
         lightning.moveTo(Vec3.atBottomCenterOf(pos));
         world.addFreshEntity(lightning);
     }
