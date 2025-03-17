@@ -19,7 +19,6 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
-import java.util.Objects;
 
 public class TPProcedure {
 
@@ -39,36 +38,48 @@ public class TPProcedure {
         // Preload the chunk to avoid "position not loaded" error
         BlockPos targetPos = new BlockPos((int) x, (int) y, (int) z);
         ChunkPos chunkPos = new ChunkPos(targetPos);
+
+        // Add a chunk loading ticket (keeps chunk loaded temporarily)
         targetDimension.getChunkSource().addRegionTicket(TicketType.POST_TELEPORT, chunkPos, 2, commandUser.getId());
 
-        // Delay teleportation slightly for effects to be visible
-        Objects.requireNonNull(commandUser.level().getServer()).execute(() -> {
-            // Ensure the area is fully loaded before teleporting
-            targetDimension.getChunk(chunkPos.x, chunkPos.z);
+        // Schedule teleport after a short delay to ensure the chunk is loaded
+        targetDimension.getServer().execute(() -> checkChunkAndTeleport(commandUser, targetDimension, x, y, z));
+    }
 
-            BlockPos safePos = findSafePosition(targetDimension, targetPos);
+    private static void checkChunkAndTeleport(Entity commandUser, ServerLevel targetDimension, double x, double y, double z) {
+        BlockPos targetPos = new BlockPos((int) x, (int) y, (int) z);
 
-            // Apply wormhole distortion effect
-            for (Entity entity : entitiesToTeleport) {
-                applyWormholeDistortion(entity);
-            }
+        // Ensure the chunk is loaded before teleporting
+        if (!targetDimension.isLoaded(targetPos)) {
+            // Retry checking after a short delay
+            targetDimension.getServer().execute(() -> checkChunkAndTeleport(commandUser, targetDimension, x, y, z));
+            return;
+        }
 
-            // Play teleportation sound
-            targetDimension.playSound(null, safePos, SoundEvents.ENDERMAN_TELEPORT, commandUser.getSoundSource(), 1.0F, 1.0F);
+        // Chunk is loaded, proceed with teleport
+        BlockPos safePos = findSafePosition(targetDimension, targetPos);
 
-            // Summon lightning at destination
-            summonLightning(targetDimension, safePos);
+        // Apply wormhole distortion effect
+        List<Entity> entitiesToTeleport = findNearbyEntities(commandUser);
+        for (Entity entity : entitiesToTeleport) {
+            applyWormholeDistortion(entity);
+        }
 
-            // Teleport all affected entities
-            for (Entity entity : entitiesToTeleport) {
-                teleportEntity(entity, targetDimension, safePos);
-            }
+        // Play teleportation sound
+        targetDimension.playSound(null, safePos, SoundEvents.ENDERMAN_TELEPORT, commandUser.getSoundSource(), 1.0F, 1.0F);
 
-            // Apply post-teleport effects
-            for (Entity entity : entitiesToTeleport) {
-                applyPostTeleportEffects(entity);
-            }
-        });
+        // Summon lightning at destination
+        summonLightning(targetDimension, safePos);
+
+        // Teleport all affected entities
+        for (Entity entity : entitiesToTeleport) {
+            teleportEntity(entity, targetDimension, safePos);
+        }
+
+        // Apply post-teleport effects
+        for (Entity entity : entitiesToTeleport) {
+            applyPostTeleportEffects(entity);
+        }
     }
 
     private static List<Entity> findNearbyEntities(Entity entity) {
