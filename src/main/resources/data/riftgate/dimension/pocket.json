@@ -1,0 +1,8 @@
+
+{
+  "type": "riftgate:pocket",
+  "generator": {
+    "type": "minecraft:noise",
+    "settings": "minecraft:overworld"
+  }
+}
