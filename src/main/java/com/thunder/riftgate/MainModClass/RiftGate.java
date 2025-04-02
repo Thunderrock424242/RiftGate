@@ -1,6 +1,8 @@
 package com.thunder.riftgate.MainModClass;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.thunder.riftgate.DoorEventHandler;
+import com.thunder.riftgate.ModDimensions;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -48,6 +50,9 @@ public class RiftGate {
         // Register mod setup and creative tabs
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::addCreative);
+
+        ModDimensions.register();
+        NeoForge.EVENT_BUS.register(DoorEventHandler.class);
 
         // Register global events
         NeoForge.EVENT_BUS.register(this);
