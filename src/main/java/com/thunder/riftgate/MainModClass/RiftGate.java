@@ -1,16 +1,20 @@
 package com.thunder.riftgate.MainModClass;
 
 import com.mojang.brigadier.CommandDispatcher;
-import com.thunder.riftgate.DoorEventHandler;
-import com.thunder.riftgate.ModDimensions;
+import com.thunder.riftgate.events.DoorEventHandler;
+import com.thunder.riftgate.dimension.ModDimensions;
+import com.thunder.riftgate.items.ModItems;
+import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
@@ -97,6 +101,16 @@ public class RiftGate {
     @SubscribeEvent
     public void onServerStopping(ServerStoppingEvent event) {
 
+    }
+
+    private void clientSetup(FMLClientSetupEvent event) {
+        event.enqueueWork(() -> {
+            // Example: Add glowing overlay for the portal key (custom item property)
+            ItemProperties.register(ModItems.PORTAL_KEY.get(), new ResourceLocation(MOD_ID, "active"),
+                    (stack, world, entity, seed) -> 1.0F); // Always active glow effect
+
+            // Future: BlockEntityRenderers, Shader hooks, etc.
+        });
     }
 
 }

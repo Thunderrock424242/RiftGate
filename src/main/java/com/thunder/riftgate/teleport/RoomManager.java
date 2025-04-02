@@ -1,4 +1,4 @@
-package com.thunder.riftgate;
+package com.thunder.riftgate.teleport;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -9,6 +9,7 @@ import java.util.UUID;
 
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 
@@ -30,7 +31,7 @@ public class RoomManager {
 
             ServerLevel level = server.getLevel(POCKET_DIM);
             if (level != null) {
-                generateBarrierBox(level, origin, 128); // 256x256 area
+                generateBarrierBox(level, origin); // 256x256 area
             }
 
             return origin;
@@ -57,11 +58,11 @@ public class RoomManager {
                 player.getYRot(), player.getXRot());
     }
 
-    private static void generateBarrierBox(ServerLevel level, BlockPos center, int halfSize) {
-        int minX = center.getX() - halfSize;
-        int maxX = center.getX() + halfSize;
-        int minZ = center.getZ() - halfSize;
-        int maxZ = center.getZ() + halfSize;
+    private static void generateBarrierBox(ServerLevel level, BlockPos center) {
+        int minX = center.getX() - 128;
+        int maxX = center.getX() + 128;
+        int minZ = center.getZ() - 128;
+        int maxZ = center.getZ() + 128;
 
         for (int x = minX; x <= maxX; x++) {
             for (int z = minZ; z <= maxZ; z++) {
@@ -78,4 +79,23 @@ public class RoomManager {
             }
         }
     }
+
+
+    public static void teleportEntity(Entity entity, BlockPos fromDoor) {
+        MinecraftServer server = entity.level().getServer();
+        if (server == null) return;
+
+        ServerLevel pocket = server.getLevel(POCKET_DIM);
+        if (pocket == null) return;
+
+        UUID ownerId = (entity instanceof ServerPlayer player)
+                ? player.getUUID()
+                : linkedDoors.getOrDefault(fromDoor, null);
+
+        if (ownerId == null) return;
+
+        BlockPos targetPos = getInteriorRoom(ownerId, server);
+        entity.teleportTo(pocket, targetPos.getX() + 0.5, targetPos.getY(), targetPos.getZ() + 0.5);
+    }
+
 }

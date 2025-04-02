@@ -1,4 +1,4 @@
-package com.thunder.riftgate;
+package com.thunder.riftgate.items;
 
 import net.minecraft.world.item.Item;
 import net.neoforged.neoforge.registries.DeferredHolder;

@@ -1,5 +1,7 @@
-package com.thunder.riftgate;
+package com.thunder.riftgate.events;
 
+import com.thunder.riftgate.items.ModItems;
+import com.thunder.riftgate.teleport.RoomManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;

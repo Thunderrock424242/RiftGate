@@ -1,4 +1,4 @@
-package com.thunder.riftgate;
+package com.thunder.riftgate.teleport;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
