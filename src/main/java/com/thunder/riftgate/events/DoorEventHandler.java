@@ -26,7 +26,7 @@ public class DoorEventHandler {
 
         if (!(state.getBlock() instanceof DoorBlock) || level.isClientSide) return;
 
-        if (heldItem.is(ModItems.PORTAL_KEY.get())) {
+        if (heldItem.is(ModItems.RIFT_GATE_KEY.get())) {
             if (!RoomManager.isLinkedDoor(pos)) {
                 RoomManager.linkDoor(player.getUUID(), pos);
                 player.sendSystemMessage(net.minecraft.network.chat.Component.literal("This door is now linked to your Rift Room."));

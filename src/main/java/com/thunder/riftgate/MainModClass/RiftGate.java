@@ -3,6 +3,7 @@ package com.thunder.riftgate.MainModClass;
 import com.mojang.brigadier.CommandDispatcher;
 import com.thunder.riftgate.events.DoorEventHandler;
 import com.thunder.riftgate.dimension.ModDimensions;
+import com.thunder.riftgate.items.ModCreativeTabs;
 import com.thunder.riftgate.items.ModItems;
 import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.commands.CommandSourceStack;
@@ -72,6 +73,10 @@ public class RiftGate {
     }
 
     private void addCreative(BuildCreativeModeTabContentsEvent event) {
+            if (event.getTab() == ModCreativeTabs.RIFT_GATE_TAB.get()) {
+                event.accept(ModItems.RIFT_GATE_KEY.get());
+            }
+        }
     }
 
     /**
@@ -109,7 +114,7 @@ public class RiftGate {
         event.enqueueWork(() -> {
             // Register custom item property for glowing overlay on portal key
             ItemProperties.register(
-                    ModItems.PORTAL_KEY.get(),
+                    ModItems.RIFT_GATE_KEY.get(),
                     ResourceLocation.parse(MOD_ID + ":active"),
                     (stack, world, entity, seed) -> 1.0F // Always active glow
             );
@@ -117,4 +122,4 @@ public class RiftGate {
             // TODO: Future - Register BlockEntityRenderers, custom shaders, etc.
         });
     }
-}
+    }
