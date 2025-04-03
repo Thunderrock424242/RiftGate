@@ -41,7 +41,9 @@ public class RiftGate {
     public static final String MOD_ID = "riftgate";
     private static final Map<CustomPacketPayload.Type<?>, NetworkMessage<?>> MESSAGES = new HashMap<>();
 
-    private record NetworkMessage<T extends CustomPacketPayload>(StreamCodec<? extends FriendlyByteBuf, T> reader, IPayloadHandler<T> handler) {}
+    private record NetworkMessage<T extends CustomPacketPayload>(StreamCodec<? extends FriendlyByteBuf, T> reader,
+                                                                 IPayloadHandler<T> handler) {
+    }
 
     /**
      * Instantiates a new Wilderness odyssey api main mod class.
@@ -78,7 +80,7 @@ public class RiftGate {
      * @param event the event
      */
     @SubscribeEvent
-    public void onServerStarting(ServerStartingEvent event){
+    public void onServerStarting(ServerStartingEvent event) {
 
 
     }
@@ -105,12 +107,14 @@ public class RiftGate {
 
     private void clientSetup(FMLClientSetupEvent event) {
         event.enqueueWork(() -> {
-            // Example: Add glowing overlay for the portal key (custom item property)
-            ItemProperties.register(ModItems.PORTAL_KEY.get(), new ResourceLocation(MOD_ID, "active"),
-                    (stack, world, entity, seed) -> 1.0F); // Always active glow effect
+            // Register custom item property for glowing overlay on portal key
+            ItemProperties.register(
+                    ModItems.PORTAL_KEY.get(),
+                    ResourceLocation.parse(MOD_ID + ":active"),
+                    (stack, world, entity, seed) -> 1.0F // Always active glow
+            );
 
-            // Future: BlockEntityRenderers, Shader hooks, etc.
+            // TODO: Future - Register BlockEntityRenderers, custom shaders, etc.
         });
     }
-
 }

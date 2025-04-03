@@ -7,7 +7,8 @@ import net.minecraft.world.level.Level;
 
 public class ModDimensions {
     public static final ResourceKey<Level> INTERIOR_DIM_KEY =
-            ResourceKey.create(Registries.DIMENSION, new ResourceLocation("riftgate", "interior"));
+            ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse("riftgate:interior"));
+
 
     public static void register() {
         // Dimension auto-registered via JSON
