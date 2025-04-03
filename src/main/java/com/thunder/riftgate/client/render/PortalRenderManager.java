@@ -1,58 +1,82 @@
 package com.thunder.riftgate.client.render;
 
-import com.mojang.blaze3d.pipeline.RenderTarget;
+import com.mojang.blaze3d.pipeline.TextureTarget;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.thunder.riftgate.dimension.ModDimensions;
 import com.thunder.riftgate.teleport.RoomManager;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.client.renderer.LevelRenderer;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.phys.Vec3;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.AABB;
 
+import java.lang.reflect.Method;
 import java.util.HashMap;
+import java.util.List;
 import java.util.UUID;
 
 public class PortalRenderManager {
     public static final int WIDTH = 128;
     public static final int HEIGHT = 128;
 
-    private static final HashMap<UUID, RenderTarget> playerTargets = new HashMap<>();
+    private static final HashMap<UUID, TextureTarget> playerTargets = new HashMap<>();
 
-    public static RenderTarget getOrCreateFramebuffer(UUID playerId) {
+    public static TextureTarget getOrCreateFramebuffer(UUID playerId) {
         return playerTargets.computeIfAbsent(playerId, id -> {
-            RenderTarget fb = new RenderTarget(true);
-            fb.resize(WIDTH, HEIGHT, Minecraft.getInstance().getMainRenderTarget().isStencilEnabled());
+            TextureTarget fb = new TextureTarget(WIDTH, HEIGHT, true, true);
+            fb.setClearColor(0f, 0f, 0f, 1f);
             return fb;
         });
     }
 
     public static void renderPortalPreview(UUID playerId, BlockPos doorPos) {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.level == null || mc.player == null) return;
-        if (mc.level.dimension().location().toString().equals("riftgate:pocket")) return;
+        MinecraftServer server = mc.getSingleplayerServer();
+        if (mc.level == null || mc.player == null || server == null) return;
 
-        RenderTarget portalFB = getOrCreateFramebuffer(playerId);
-        portalFB.bindWrite(true);
+        if (mc.level.dimension().equals(ModDimensions.INTERIOR_DIM_KEY)) return;
 
-        // Get the linked position
-        BlockPos targetPos = RoomManager.getInteriorRoom(playerId, mc.getSingleplayerServer());
+        ServerLevel pocket = server.getLevel(ModDimensions.INTERIOR_DIM_KEY);
+        if (pocket == null) return;
+
+        BlockPos targetPos = RoomManager.getInteriorRoom(playerId, server);
+
+        TextureTarget fb = getOrCreateFramebuffer(playerId);
+        fb.bindWrite(true);
+        fb.clear(Minecraft.ON_OSX);
 
         Camera camera = new Camera();
-        camera.setup(mc.level, mc.player, false, false, 0F);
-        camera.setPosition(targetPos.getX() + 0.5, targetPos.getY() + 1.62, targetPos.getZ() + 0.5);
+        camera.setup(pocket, mc.player, false, false, 0F);
 
-        GameRenderer gameRenderer = mc.gameRenderer;
-        LevelRenderer levelRenderer = mc.levelRenderer;
+        try {
+            Method setPos = Camera.class.getDeclaredMethod("setPosition", double.class, double.class, double.class);
+            setPos.setAccessible(true);
+            setPos.invoke(camera, targetPos.getX() + 0.5, targetPos.getY() + 1.6, targetPos.getZ() + 0.5);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
-        levelRenderer.renderLevel(
-                new net.minecraft.client.renderer.RenderTypeBuffers.Impl(mc.renderBuffers().bufferSource()),
-                camera,
-                0F,
-                1L,
-                false,
-                camera.getPosition()
-        );
+        PoseStack poseStack = new PoseStack();
+        MultiBufferSource.BufferSource buffer = mc.renderBuffers().bufferSource();
+        EntityRenderDispatcher dispatcher = mc.getEntityRenderDispatcher();
 
+        AABB renderArea = new AABB(targetPos).inflate(16); // 16 block radius
+        List<Entity> entities = pocket.getEntities(null, renderArea);
+
+        for (Entity entity : entities) {
+            if (entity != null && entity.isAlive()) {
+                double dx = entity.getX() - targetPos.getX();
+                double dy = entity.getY() - targetPos.getY();
+                double dz = entity.getZ() - targetPos.getZ();
+                dispatcher.render(entity, dx, dy, dz, 0F, 1F, poseStack, buffer, 15728880);
+            }
+        }
+
+        buffer.endBatch();
         mc.getMainRenderTarget().bindWrite(true);
     }
 }

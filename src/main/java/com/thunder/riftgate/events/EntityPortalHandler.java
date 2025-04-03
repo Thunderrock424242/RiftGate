@@ -1,7 +1,9 @@
 package com.thunder.riftgate.events;
 
+import com.thunder.riftgate.teleport.RoomManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
@@ -9,6 +11,7 @@ import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.event.tick.LevelTickEvent;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -18,11 +21,13 @@ public class EntityPortalHandler {
     private static final Set<Entity> recentlyTeleported = new HashSet<>();
 
     @SubscribeEvent
-    public static void onEntityTick(TickEvent.LevelTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || event.level.isClientSide()) return;
+    public static void onEntityTick(LevelTickEvent.Post event) {
+        Level level = event.getLevel();
+        if (level.isClientSide()) return;
 
-        Level level = event.level;
-        for (Entity entity : level.getEntities(null, entity -> entity.isAlive() && entity.blockPosition() != null)) {
+        for (Entity entity : level.getEntitiesOfClass(Entity.class, level.getWorldBorder().getCollisionShape().bounds())) {
+            if (!entity.isAlive() || entity.blockPosition() == null) continue;
+
             BlockPos pos = entity.blockPosition();
             BlockState state = level.getBlockState(pos);
 
@@ -30,7 +35,6 @@ public class EntityPortalHandler {
             boolean isOpen = state.getValue(DoorBlock.OPEN);
             if (!RoomManager.isLinkedDoor(pos)) continue;
 
-            // Prevent re-entry spam
             if (recentlyTeleported.contains(entity)) continue;
 
             boolean canEnter = false;
@@ -38,10 +42,8 @@ public class EntityPortalHandler {
             if (entity instanceof Player) {
                 canEnter = isOpen;
             } else if (entity instanceof TamableAnimal || entity instanceof Animal) {
-                if (isOpen) {
+                if (isOpen || entity.hasCustomName()) {
                     canEnter = true;
-                } else if (entity.hasCustomName()) {
-                    canEnter = true; // Pet with name tag
                 }
             }
 
@@ -50,7 +52,7 @@ public class EntityPortalHandler {
                 entity.getServer().execute(() -> {
                     RoomManager.teleportEntity(entity, pos);
                     // Remove from cooldown after 1 second
-                    entity.level().getServer().execute(() -> recentlyTeleported.remove(entity));
+                    level.getServer().execute(() -> recentlyTeleported.remove(entity));
                 });
             }
         }

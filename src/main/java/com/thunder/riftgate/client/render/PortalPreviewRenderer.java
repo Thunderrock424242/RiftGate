@@ -7,7 +7,6 @@ import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import com.thunder.riftgate.teleport.RoomManager;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
@@ -22,7 +21,7 @@ public class PortalPreviewRenderer implements BlockEntityRenderer<BlockEntity> {
 
     @Override
     public void render(BlockEntity blockEntity, float partialTicks, PoseStack poseStack,
-                       MultiBufferSource buffer, int combinedLight, int combinedOverlay) {
+                       net.minecraft.client.renderer.MultiBufferSource buffer, int combinedLight, int combinedOverlay) {
 
         BlockState state = blockEntity.getBlockState();
 
@@ -38,24 +37,23 @@ public class PortalPreviewRenderer implements BlockEntityRenderer<BlockEntity> {
         PortalRenderManager.renderPortalPreview(playerId, blockEntity.getBlockPos());
         var fb = PortalRenderManager.getOrCreateFramebuffer(playerId);
 
-        // Render framebuffer texture onto a quad in the door frame
         poseStack.pushPose();
-        poseStack.translate(0.25, 0.5, 0.501); // Position in door
+        poseStack.translate(0.25, 0.5, 0.501); // door frame inset
         poseStack.scale(0.5F, 1.0F, 1.0F);
 
         RenderSystem.setShaderTexture(0, fb.getColorTextureId());
         Matrix4f matrix = poseStack.last().pose();
 
-        Tesselator tesselator = Tesselator.getInstance();
-        BufferBuilder bufferBuilder = tesselator.getBuilder();
-        bufferBuilder.begin(VertexFormat.Mode.QUADS, RenderType.TEXTURE.get().format());
+        Tesselator tess = Tesselator.getInstance();
+        BufferBuilder bb = tess.getBuilder();
+        bb.begin(VertexFormat.Mode.QUADS, RenderType.TEXTURE.get().format());
 
-        bufferBuilder.vertex(matrix, 0, 1, 0).uv(0, 1).endVertex();
-        bufferBuilder.vertex(matrix, 1, 1, 0).uv(1, 1).endVertex();
-        bufferBuilder.vertex(matrix, 1, 0, 0).uv(1, 0).endVertex();
-        bufferBuilder.vertex(matrix, 0, 0, 0).uv(0, 0).endVertex();
+        bb.vertex(matrix, 0, 1, 0).uv(0, 1).endVertex();
+        bb.vertex(matrix, 1, 1, 0).uv(1, 1).endVertex();
+        bb.vertex(matrix, 1, 0, 0).uv(1, 0).endVertex();
+        bb.vertex(matrix, 0, 0, 0).uv(0, 0).endVertex();
 
-        tesselator.end();
+        tess.end();
         poseStack.popPose();
     }
 }

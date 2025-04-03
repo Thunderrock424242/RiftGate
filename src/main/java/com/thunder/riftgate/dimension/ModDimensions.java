@@ -10,6 +10,6 @@ public class ModDimensions {
             ResourceKey.create(Registries.DIMENSION, new ResourceLocation("riftgate", "interior"));
 
     public static void register() {
-        // Register dimension later
+        // Dimension auto-registered via JSON
     }
 }
