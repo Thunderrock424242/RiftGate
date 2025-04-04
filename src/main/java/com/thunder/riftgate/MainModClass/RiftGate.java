@@ -8,6 +8,7 @@ import com.thunder.riftgate.items.ModItems;
 import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
@@ -45,7 +46,6 @@ public class RiftGate {
     private record NetworkMessage<T extends CustomPacketPayload>(StreamCodec<? extends FriendlyByteBuf, T> reader,
                                                                  IPayloadHandler<T> handler) {
     }
-
     /**
      * Instantiates a new Wilderness odyssey api main mod class.
      *
@@ -57,6 +57,10 @@ public class RiftGate {
         // Register mod setup and creative tabs
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::addCreative);
+
+        ModItems.ITEMS.register(modEventBus);
+        // Same for blocks, creative tabs, etc.
+        ModCreativeTabs.TABS.register(modEventBus);
 
         ModDimensions.register();
         NeoForge.EVENT_BUS.register(DoorEventHandler.class);
@@ -73,9 +77,7 @@ public class RiftGate {
     }
 
     private void addCreative(BuildCreativeModeTabContentsEvent event) {
-        if (event.getTab() == ModCreativeTabs.RIFT_GATE_TAB.get()) {
-            event.accept(ModItems.RIFT_GATE_KEY.get());
-        }
+
     }
 
     /**
@@ -120,5 +122,8 @@ public class RiftGate {
 
             // TODO: Future - Register BlockEntityRenderers, custom shaders, etc.
         });
+    }
+    public static Component translation(String key) {
+        return Component.translatable("text." + MOD_ID + "." + key);
     }
 }
