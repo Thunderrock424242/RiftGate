@@ -73,9 +73,8 @@ public class RiftGate {
     }
 
     private void addCreative(BuildCreativeModeTabContentsEvent event) {
-            if (event.getTab() == ModCreativeTabs.RIFT_GATE_TAB.get()) {
-                event.accept(ModItems.RIFT_GATE_KEY.get());
-            }
+        if (event.getTab() == ModCreativeTabs.RIFT_GATE_TAB.get()) {
+            event.accept(ModItems.RIFT_GATE_KEY.get());
         }
     }
 
@@ -122,4 +121,4 @@ public class RiftGate {
             // TODO: Future - Register BlockEntityRenderers, custom shaders, etc.
         });
     }
-    }
+}
