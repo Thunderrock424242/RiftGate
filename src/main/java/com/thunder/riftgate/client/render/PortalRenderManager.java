@@ -40,8 +40,8 @@ public class PortalRenderManager {
 
         if (mc.level.dimension().equals(ModDimensions.INTERIOR_DIM_KEY)) return;
 
-        ServerLevel pocket = server.getLevel(ModDimensions.INTERIOR_DIM_KEY);
-        if (pocket == null) return;
+        ServerLevel interiorLevel = server.getLevel(ModDimensions.INTERIOR_DIM_KEY);
+        if (interiorLevel == null) return;
 
         BlockPos targetPos = RoomManager.getInteriorRoom(playerId, server);
 
@@ -50,7 +50,7 @@ public class PortalRenderManager {
         fb.clear(Minecraft.ON_OSX);
 
         Camera camera = new Camera();
-        camera.setup(pocket, mc.player, false, false, 0F);
+        camera.setup(interiorLevel, mc.player, false, false, 0F);
 
         try {
             Method setPos = Camera.class.getDeclaredMethod("setPosition", double.class, double.class, double.class);
@@ -65,7 +65,7 @@ public class PortalRenderManager {
         EntityRenderDispatcher dispatcher = mc.getEntityRenderDispatcher();
 
         AABB renderArea = new AABB(targetPos).inflate(16); // 16 block radius
-        List<Entity> entities = pocket.getEntities(null, renderArea);
+        List<Entity> entities = interiorLevel.getEntities(null, renderArea);
 
         for (Entity entity : entities) {
             if (entity != null && entity.isAlive()) {
