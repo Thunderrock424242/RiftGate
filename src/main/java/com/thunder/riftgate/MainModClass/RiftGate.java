@@ -57,6 +57,8 @@ public class RiftGate {
         // Register mod setup and creative tabs
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::addCreative);
+        // Register client-only setup
+        modEventBus.addListener(this::clientSetup);
 
         ModItems.ITEMS.register(modEventBus);
         // Same for blocks, creative tabs, etc.

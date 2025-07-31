@@ -10,7 +10,7 @@ public class RiftGateKeyItem extends Item {
                 .rarity(Rarity.RARE)
                 .stacksTo(1)
                 .fireResistant()
-                .setNoRepair()); // fixed from setNoRepair() to noRepair()
+                .setNoRepair());
     }
 
     @Override
