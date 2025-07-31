@@ -9,6 +9,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.network.chat.Component;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
@@ -26,14 +27,15 @@ public class DoorEventHandler {
 
         if (!(state.getBlock() instanceof DoorBlock) || level.isClientSide) return;
 
-        if (heldItem.is(ModItems.RIFT_GATE_KEY.get())) {
-            if (!RoomManager.isLinkedDoor(pos)) {
-                RoomManager.linkDoor(player.getUUID(), pos);
-                player.sendSystemMessage(net.minecraft.network.chat.Component.literal("This door is now linked to your Rift Room."));
-                event.setCanceled(true);
-            }
-        } else if (RoomManager.isLinkedDoor(pos)) {
-            RoomManager.enterRoom((ServerPlayer) player, pos);
+        boolean usingKey = heldItem.is(ModItems.RIFT_GATE_KEY.get());
+
+        if (usingKey && !RoomManager.isLinkedDoor(pos)) {
+            RoomManager.linkDoor(player.getUUID(), pos);
+            player.sendSystemMessage(Component.literal("This door is now linked to your Rift Room."));
+        }
+
+        if (RoomManager.isLinkedDoor(pos) && player instanceof ServerPlayer sp) {
+            RoomManager.enterRoom(sp, pos);
             event.setCanceled(true);
         }
     }
