@@ -1,6 +1,7 @@
 package com.thunder.riftgate.events;
 
 import com.thunder.riftgate.items.ModItems;
+import com.thunder.riftgate.teleport.RoomGenerator;
 import com.thunder.riftgate.teleport.RoomManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
@@ -33,8 +34,17 @@ public class DoorEventHandler {
                 event.setCanceled(true);
             }
         } else if (RoomManager.isLinkedDoor(pos)) {
-            RoomManager.enterRoom((ServerPlayer) player, pos);
-            event.setCanceled(true);
+            if (player instanceof ServerPlayer serverPlayer) {
+                // 🔧 Generate the room if needed
+                if (!RoomManager.roomExists(serverPlayer.getUUID())) {
+                    BlockPos origin = RoomManager.getOrCreateRoomOrigin(serverPlayer.getUUID());
+                    RoomGenerator.generateRoom(serverPlayer.serverLevel(), origin);
+                }
+
+                RoomManager.enterRoom(serverPlayer, pos);
+                event.setCanceled(true);
+            }
         }
     }
+
 }

@@ -14,6 +14,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.tick.LevelTickEvent;
 
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 @EventBusSubscriber
@@ -26,7 +27,7 @@ public class EntityPortalHandler {
         if (level.isClientSide()) return;
 
         for (Entity entity : level.getEntitiesOfClass(Entity.class, level.getWorldBorder().getCollisionShape().bounds())) {
-            if (!entity.isAlive() || entity.blockPosition() == null) continue;
+            if (!entity.isAlive()) continue;
 
             BlockPos pos = entity.blockPosition();
             BlockState state = level.getBlockState(pos);
@@ -41,7 +42,7 @@ public class EntityPortalHandler {
 
             if (entity instanceof Player) {
                 canEnter = isOpen;
-            } else if (entity instanceof TamableAnimal || entity instanceof Animal) {
+            } else if (entity instanceof Animal) {
                 if (isOpen || entity.hasCustomName()) {
                     canEnter = true;
                 }
@@ -49,10 +50,10 @@ public class EntityPortalHandler {
 
             if (canEnter) {
                 recentlyTeleported.add(entity);
-                entity.getServer().execute(() -> {
+                Objects.requireNonNull(entity.getServer()).execute(() -> {
                     RoomManager.teleportEntity(entity, pos);
                     // Remove from cooldown after 1 second
-                    level.getServer().execute(() -> recentlyTeleported.remove(entity));
+                    Objects.requireNonNull(level.getServer()).execute(() -> recentlyTeleported.remove(entity));
                 });
             }
         }

@@ -105,4 +105,15 @@ public class RoomManager {
                 entity.getXRot()
         );
     }
+    public static boolean roomExists(UUID playerId) {
+        return playerRooms.containsKey(playerId);
+    }
+
+    public static BlockPos getOrCreateRoomOrigin(UUID playerId) {
+        return playerRooms.computeIfAbsent(playerId, id -> {
+            int baseX = (id.hashCode() & 0xFFFFF) % 16000;
+            int baseZ = ((id.hashCode() >> 1) & 0xFFFFF) % 16000;
+            return new BlockPos(baseX, 100, baseZ);
+        });
+    }
 }
