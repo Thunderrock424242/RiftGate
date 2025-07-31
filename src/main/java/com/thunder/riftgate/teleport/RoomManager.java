@@ -25,15 +25,15 @@ public class RoomManager {
         return playerRooms.computeIfAbsent(playerId, id -> {
             int baseX = (id.hashCode() & 0xFFFFF) % 16000;
             int baseZ = ((id.hashCode() >> 1) & 0xFFFFF) % 16000;
-            BlockPos origin = new BlockPos(baseX, 100, baseZ);
+            BlockPos doorPos = new BlockPos(baseX, 100, baseZ);
 
             ServerLevel level = server.getLevel(DIMENSION);
             if (level != null) {
-                generateBarrierBox(level, origin); // 256x256 area
-                RoomGenerator.generateRoom(level, origin);
+                generateBarrierBox(level, doorPos);
+                RoomGenerator.generateRoom(level, doorPos);
             }
 
-            return origin;
+            return doorPos;
         });
     }
 

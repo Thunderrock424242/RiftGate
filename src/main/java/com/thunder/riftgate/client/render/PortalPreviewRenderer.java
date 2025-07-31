@@ -56,7 +56,11 @@ public class PortalPreviewRenderer implements BlockEntityRenderer<BlockEntity> {
         bb.addVertex(matrix, 1, 0, 0).setUv(1, 0);
         bb.addVertex(matrix, 0, 0, 0).setUv(0, 0);
 
-        var fallback = ResourceLocation.withDefaultNamespace("textures/misc/white.png");
+        // Use the vanilla nether portal texture for the preview when no custom
+        // framebuffer data is available
+        var fallback = ResourceLocation.fromNamespaceAndPath(
+                "minecraft",
+                "textures/block/nether_portal.png");
         mc.renderBuffers().bufferSource().endBatch(RenderType.text(fallback));
 
         poseStack.popPose();
