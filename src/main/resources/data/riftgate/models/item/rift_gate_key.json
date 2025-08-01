@@ -1,7 +1,0 @@
-{
-  "parent": "item/generated",
-  "textures": {
-    "layer0": "riftgate:item/rift_gate_key"
-  },
-  "overrides": []
-}

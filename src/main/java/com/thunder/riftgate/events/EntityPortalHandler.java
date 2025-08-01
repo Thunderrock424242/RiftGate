@@ -34,7 +34,11 @@ public class EntityPortalHandler {
 
             if (!(state.getBlock() instanceof DoorBlock)) continue;
             boolean isOpen = state.getValue(DoorBlock.OPEN);
-            if (!RoomManager.isLinkedDoor(pos)) continue;
+
+            boolean isLinked = RoomManager.isLinkedDoor(pos);
+            boolean isRoomDoor = RoomManager.isRoomDoor(pos);
+
+            if (!isLinked && !isRoomDoor) continue;
 
             if (recentlyTeleported.contains(entity)) continue;
 
@@ -51,7 +55,11 @@ public class EntityPortalHandler {
             if (canEnter) {
                 recentlyTeleported.add(entity);
                 Objects.requireNonNull(entity.getServer()).execute(() -> {
-                    RoomManager.teleportEntity(entity, pos);
+                    if (isLinked) {
+                        RoomManager.teleportEntity(entity, pos);
+                    } else if (isRoomDoor) {
+                        RoomManager.exitRoom(entity, pos);
+                    }
                     // Remove from cooldown after 1 second
                     Objects.requireNonNull(level.getServer()).execute(() -> recentlyTeleported.remove(entity));
                 });

@@ -13,12 +13,15 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 import java.util.EnumSet;
 
 public class RoomManager {
     private static final HashMap<UUID, BlockPos> playerRooms = new HashMap<>();
-    private static final HashMap<BlockPos, UUID> linkedDoors = new HashMap<>();
+    private static final Map<BlockPos, UUID> linkedDoors = new HashMap<>();
+    private static final Map<UUID, BlockPos> playerDoors = new HashMap<>();
+    private static final Map<BlockPos, UUID> roomDoors = new HashMap<>();
     private static final ResourceKey<Level> DIMENSION = ModDimensions.INTERIOR_DIM_KEY;
 
     public static BlockPos getInteriorRoom(UUID playerId, MinecraftServer server) {
@@ -33,16 +36,26 @@ public class RoomManager {
                 RoomGenerator.generateRoom(level, doorPos);
             }
 
+            roomDoors.put(doorPos, id);
             return doorPos;
         });
     }
 
     public static void linkDoor(UUID playerId, BlockPos doorPos) {
         linkedDoors.put(doorPos, playerId);
+        playerDoors.put(playerId, doorPos);
     }
 
     public static boolean isLinkedDoor(BlockPos pos) {
         return linkedDoors.containsKey(pos);
+    }
+
+    public static boolean isRoomDoor(BlockPos pos) {
+        return roomDoors.containsKey(pos);
+    }
+
+    public static UUID getLinkedDoorOwner(BlockPos pos) {
+        return linkedDoors.get(pos);
     }
 
     public static void enterRoom(ServerPlayer player, BlockPos fromDoor) {
@@ -103,8 +116,34 @@ public class RoomManager {
                 entity.getXRot()
         );
     }
+
+    public static void exitRoom(Entity entity, BlockPos doorPos) {
+        MinecraftServer server = entity.level().getServer();
+        if (server == null) return;
+
+        UUID ownerId = roomDoors.get(doorPos);
+        if (ownerId == null) return;
+
+        BlockPos returnDoor = playerDoors.get(ownerId);
+        ServerLevel overworld = server.getLevel(Level.OVERWORLD);
+        if (returnDoor == null || overworld == null) return;
+
+        entity.teleportTo(
+                overworld,
+                returnDoor.getX() + 0.5,
+                returnDoor.getY(),
+                returnDoor.getZ() + 0.5,
+                EnumSet.noneOf(RelativeMovement.class),
+                entity.getYRot(),
+                entity.getXRot()
+        );
+    }
     public static boolean roomExists(UUID playerId) {
         return playerRooms.containsKey(playerId);
+    }
+
+    public static BlockPos getLinkedDoorForPlayer(UUID playerId) {
+        return playerDoors.get(playerId);
     }
 
     public static BlockPos getOrCreateRoomOrigin(UUID playerId) {
