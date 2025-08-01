@@ -32,9 +32,6 @@ public class DoorEventHandler {
                 player.sendSystemMessage(net.minecraft.network.chat.Component.literal("This door is now linked to your Rift Room."));
                 event.setCanceled(true);
             }
-        } else if (RoomManager.isLinkedDoor(pos)) {
-            RoomManager.enterRoom((ServerPlayer) player, pos);
-            event.setCanceled(true);
         }
     }
 }
