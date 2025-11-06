@@ -1,6 +1,7 @@
 package com.thunder.riftgate.MainModClass;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.thunder.riftgate.config.ModConfig;
 import com.thunder.riftgate.events.DoorEventHandler;
 import com.thunder.riftgate.dimension.ModDimensions;
 import com.thunder.riftgate.items.ModCreativeTabs;
@@ -66,6 +67,8 @@ public class RiftGate {
 
         ModDimensions.register();
         NeoForge.EVENT_BUS.register(DoorEventHandler.class);
+
+        container.registerConfig(net.neoforged.fml.config.ModConfig.Type.CLIENT, ModConfig.CLIENT_SPEC);
 
         // Register global events
         NeoForge.EVENT_BUS.register(this);

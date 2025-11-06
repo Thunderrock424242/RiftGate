@@ -6,6 +6,7 @@ import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexFormat;
+import com.thunder.riftgate.config.ModConfig;
 import com.thunder.riftgate.teleport.RoomManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.RenderType;
@@ -36,9 +37,17 @@ public class PortalPreviewRenderer implements BlockEntityRenderer<BlockEntity> {
         if (mc.player == null) return;
 
         var playerId = mc.player.getUUID();
-        PortalRenderManager.renderPortalPreview(playerId, blockEntity.getBlockPos());
-        var fb = PortalRenderManager.getOrCreateFramebuffer(playerId);
-        int textureId = fb.getColorTextureId();
+        ModConfig.PortalRenderMode mode = ModConfig.CLIENT.portalRenderMode.get();
+
+        int textureId = -1;
+        if (mode == ModConfig.PortalRenderMode.SEE_THROUGH) {
+            PortalRenderManager.renderPortalPreview(playerId, blockEntity.getBlockPos());
+            var fb = PortalRenderManager.getOrCreateFramebuffer(playerId);
+            textureId = fb.getColorTextureId();
+            RenderSystem.setShaderTexture(0, textureId);
+        } else {
+            RenderSystem.setShaderTexture(0, ResourceLocation.fromNamespaceAndPath("minecraft", "textures/block/end_portal.png"));
+        }
 
         poseStack.pushPose();
         poseStack.translate(0.25, 0.5, 0.501); // Inside door frame
@@ -46,7 +55,6 @@ public class PortalPreviewRenderer implements BlockEntityRenderer<BlockEntity> {
         Matrix4f matrix = poseStack.last().pose();
 
         RenderSystem.enableBlend();
-        RenderSystem.setShaderTexture(0, textureId);
 
         ByteBufferBuilder byteBuffer = new ByteBufferBuilder(256);
         BufferBuilder bb = new BufferBuilder(byteBuffer, VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
@@ -58,9 +66,9 @@ public class PortalPreviewRenderer implements BlockEntityRenderer<BlockEntity> {
 
         // Use the vanilla nether portal texture for the preview when no custom
         // framebuffer data is available
-        var fallback = ResourceLocation.fromNamespaceAndPath(
-                "minecraft",
-                "textures/block/nether_portal.png");
+        ResourceLocation fallback = mode == ModConfig.PortalRenderMode.SEE_THROUGH
+                ? ResourceLocation.fromNamespaceAndPath("minecraft", "textures/block/nether_portal.png")
+                : ResourceLocation.fromNamespaceAndPath("minecraft", "textures/block/end_portal.png");
         mc.renderBuffers().bufferSource().endBatch(RenderType.text(fallback));
 
         poseStack.popPose();

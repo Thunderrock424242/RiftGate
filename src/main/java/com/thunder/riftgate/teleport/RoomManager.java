@@ -13,15 +13,18 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.UUID;
 import java.util.EnumSet;
+import java.util.Set;
 
 public class RoomManager {
     private static final HashMap<UUID, BlockPos> playerRooms = new HashMap<>();
     private static final Map<BlockPos, UUID> linkedDoors = new HashMap<>();
     private static final Map<UUID, BlockPos> playerDoors = new HashMap<>();
     private static final Map<BlockPos, UUID> roomDoors = new HashMap<>();
+    private static final Set<BlockPos> lockedDoors = new HashSet<>();
     private static final ResourceKey<Level> DIMENSION = ModDimensions.INTERIOR_DIM_KEY;
 
     public static BlockPos getInteriorRoom(UUID playerId, MinecraftServer server) {
@@ -42,20 +45,52 @@ public class RoomManager {
     }
 
     public static void linkDoor(UUID playerId, BlockPos doorPos) {
-        linkedDoors.put(doorPos, playerId);
-        playerDoors.put(playerId, doorPos);
+        BlockPos lower = doorPos;
+        BlockPos upper = doorPos.above();
+        linkedDoors.put(lower, playerId);
+        linkedDoors.put(upper, playerId);
+        lockedDoors.remove(lower);
+        lockedDoors.remove(upper);
+        playerDoors.put(playerId, lower);
     }
 
     public static boolean isLinkedDoor(BlockPos pos) {
-        return linkedDoors.containsKey(pos);
+        return linkedDoors.containsKey(pos) || linkedDoors.containsKey(pos.below());
     }
 
     public static boolean isRoomDoor(BlockPos pos) {
-        return roomDoors.containsKey(pos);
+        return roomDoors.containsKey(pos) || roomDoors.containsKey(pos.below());
     }
 
     public static UUID getLinkedDoorOwner(BlockPos pos) {
-        return linkedDoors.get(pos);
+        UUID owner = linkedDoors.get(pos);
+        if (owner == null) {
+            owner = linkedDoors.get(pos.below());
+        }
+        return owner;
+    }
+
+    public static UUID getRoomDoorOwner(BlockPos pos) {
+        UUID owner = roomDoors.get(pos);
+        if (owner == null) {
+            owner = roomDoors.get(pos.below());
+        }
+        return owner;
+    }
+
+    public static boolean isDoorLocked(BlockPos pos) {
+        return lockedDoors.contains(pos) || lockedDoors.contains(pos.below());
+    }
+
+    public static void lockDoor(BlockPos pos) {
+        lockedDoors.add(pos);
+        lockedDoors.add(pos.above());
+    }
+
+    public static void unlockDoor(BlockPos pos) {
+        lockedDoors.remove(pos);
+        lockedDoors.remove(pos.above());
+        lockedDoors.remove(pos.below());
     }
 
     public static void enterRoom(ServerPlayer player, BlockPos fromDoor) {
@@ -101,7 +136,7 @@ public class RoomManager {
 
         UUID ownerId = (entity instanceof ServerPlayer player)
                 ? player.getUUID()
-                : linkedDoors.getOrDefault(fromDoor, null);
+                : getLinkedDoorOwner(fromDoor);
 
         if (ownerId == null) return;
 
@@ -121,7 +156,7 @@ public class RoomManager {
         MinecraftServer server = entity.level().getServer();
         if (server == null) return;
 
-        UUID ownerId = roomDoors.get(doorPos);
+        UUID ownerId = getRoomDoorOwner(doorPos);
         if (ownerId == null) return;
 
         BlockPos returnDoor = playerDoors.get(ownerId);
