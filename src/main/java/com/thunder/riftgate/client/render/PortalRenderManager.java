@@ -2,6 +2,7 @@ package com.thunder.riftgate.client.render;
 
 import com.mojang.blaze3d.pipeline.TextureTarget;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.thunder.riftgate.config.ModConfig;
 import com.thunder.riftgate.dimension.ModDimensions;
 import com.thunder.riftgate.teleport.RoomManager;
 import net.minecraft.client.Camera;
@@ -34,6 +35,9 @@ public class PortalRenderManager {
     }
 
     public static void renderPortalPreview(UUID playerId, BlockPos doorPos) {
+        if (ModConfig.CLIENT.portalRenderMode.get() != ModConfig.PortalRenderMode.SEE_THROUGH) {
+            return;
+        }
         Minecraft mc = Minecraft.getInstance();
         MinecraftServer server = mc.getSingleplayerServer();
         if (mc.level == null || mc.player == null || server == null) return;
