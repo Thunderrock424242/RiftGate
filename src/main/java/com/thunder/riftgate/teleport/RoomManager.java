@@ -82,15 +82,47 @@ public class RoomManager {
         return lockedDoors.contains(pos) || lockedDoors.contains(pos.below());
     }
 
-    public static void lockDoor(BlockPos pos) {
+    private static void addLockForDoor(BlockPos pos) {
+        if (pos == null) return;
         lockedDoors.add(pos);
         lockedDoors.add(pos.above());
     }
 
-    public static void unlockDoor(BlockPos pos) {
+    private static void removeLockForDoor(BlockPos pos) {
+        if (pos == null) return;
         lockedDoors.remove(pos);
         lockedDoors.remove(pos.above());
         lockedDoors.remove(pos.below());
+    }
+
+    private static UUID getDoorOwner(BlockPos pos) {
+        UUID owner = getLinkedDoorOwner(pos);
+        if (owner == null) {
+            owner = getRoomDoorOwner(pos);
+        }
+        return owner;
+    }
+
+    public static void lockDoor(BlockPos pos) {
+        UUID owner = getDoorOwner(pos);
+
+        addLockForDoor(pos);
+
+        if (owner != null) {
+            addLockForDoor(playerDoors.get(owner));
+            addLockForDoor(playerRooms.get(owner));
+        }
+    }
+
+    public static void unlockDoor(BlockPos pos) {
+        UUID owner = getDoorOwner(pos);
+
+        removeLockForDoor(pos);
+
+        if (owner != null) {
+            removeLockForDoor(playerDoors.get(owner));
+            removeLockForDoor(playerRooms.get(owner));
+        }
     }
 
     public static void enterRoom(ServerPlayer player, BlockPos fromDoor) {
