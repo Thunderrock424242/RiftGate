@@ -34,7 +34,8 @@ public class DoorEventHandler {
         boolean isRoomDoor = RoomManager.isRoomDoor(doorBase);
         if (!isLinkedDoor && !isRoomDoor) {
             if (ModItems.isKeyItem(heldItem)) {
-                player.sendSystemMessage(Component.literal("Press F while holding your key to attune this door."));
+                RoomManager.linkDoor(player.getUUID(), doorBase);
+                player.sendSystemMessage(Component.literal("This door is now linked to your Rift Room."));
                 event.setCanceled(true);
             }
             return;
@@ -60,7 +61,7 @@ public class DoorEventHandler {
 
         if (ModItems.isKeyItem(heldItem)) {
             if (!isLinkedDoor) {
-                player.sendSystemMessage(Component.literal("Press F while holding your key to attune this door."));
+                player.sendSystemMessage(Component.literal("Use this key on an unlinked door in the Overworld to attune it."));
                 event.setCanceled(true);
                 return;
             }
