@@ -34,8 +34,7 @@ public class DoorEventHandler {
         boolean isRoomDoor = RoomManager.isRoomDoor(doorBase);
         if (!isLinkedDoor && !isRoomDoor) {
             if (ModItems.isKeyItem(heldItem)) {
-                RoomManager.linkDoor(player.getUUID(), doorBase);
-                player.sendSystemMessage(Component.literal("This door is now linked to your Rift Room."));
+                player.sendSystemMessage(Component.literal("Press F while holding your key to attune this door."));
                 event.setCanceled(true);
             }
             return;
@@ -61,8 +60,7 @@ public class DoorEventHandler {
 
         if (ModItems.isKeyItem(heldItem)) {
             if (!isLinkedDoor) {
-                RoomManager.linkDoor(player.getUUID(), doorBase);
-                player.sendSystemMessage(Component.literal("This door is now linked to your Rift Room."));
+                player.sendSystemMessage(Component.literal("Press F while holding your key to attune this door."));
                 event.setCanceled(true);
                 return;
             }
@@ -81,6 +79,20 @@ public class DoorEventHandler {
                 player.sendSystemMessage(Component.literal("Your door is locked. Use your key to unlock it."));
             } else {
                 player.sendSystemMessage(Component.literal("This door is locked."));
+            }
+            return;
+        }
+
+        if (player instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
+            if (isLinkedDoor && isOwner && !player.isShiftKeyDown() && !ModItems.isKeyItem(heldItem)) {
+                RoomManager.enterRoom(serverPlayer, doorBase);
+                event.setCanceled(true);
+            } else if (isRoomDoor && isOwner && !player.isShiftKeyDown() && !ModItems.isKeyItem(heldItem)) {
+                RoomManager.exitRoom(serverPlayer, doorBase);
+                event.setCanceled(true);
+            } else if (!isOwner && (isLinkedDoor || isRoomDoor)) {
+                player.sendSystemMessage(Component.literal("This door is attuned to another Rift Room."));
+                event.setCanceled(true);
             }
         }
     }

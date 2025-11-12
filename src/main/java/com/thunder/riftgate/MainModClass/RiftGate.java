@@ -6,6 +6,8 @@ import com.thunder.riftgate.events.DoorEventHandler;
 import com.thunder.riftgate.dimension.ModDimensions;
 import com.thunder.riftgate.items.ModCreativeTabs;
 import com.thunder.riftgate.items.ModItems;
+import com.thunder.riftgate.client.input.ClientKeyHandler;
+import com.thunder.riftgate.network.ModNetworking;
 import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.FriendlyByteBuf;
@@ -20,6 +22,7 @@ import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
@@ -61,6 +64,10 @@ public class RiftGate {
         modEventBus.addListener(this::addCreative);
         // Register client-only setup
         modEventBus.addListener(this::clientSetup);
+        modEventBus.addListener(ModNetworking::register);
+        if (FMLEnvironment.dist.isClient()) {
+            ClientKeyHandler.init(modEventBus);
+        }
 
         ModItems.ITEMS.register(modEventBus);
         // Same for blocks, creative tabs, etc.
@@ -139,5 +146,9 @@ public class RiftGate {
     }
     public static Component translation(String key) {
         return Component.translatable("text." + MOD_ID + "." + key);
+    }
+
+    public static ResourceLocation resource(String path) {
+        return ResourceLocation.fromNamespaceAndPath(MOD_ID, path);
     }
 }
