@@ -55,7 +55,7 @@ public class RiftGate {
      * @param container   the container
      */
     public RiftGate(IEventBus modEventBus, ModContainer container) {
-        LOGGER.info("RiftGate mod initialized; starting mod conflict tracking");
+        LOGGER.info("RiftGate mod initialized");
         // Register mod setup and creative tabs
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::addCreative);
