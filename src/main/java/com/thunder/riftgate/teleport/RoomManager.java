@@ -9,6 +9,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.RelativeMovement;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 
@@ -25,6 +26,7 @@ public class RoomManager {
     private static final Map<UUID, BlockPos> playerDoors = new HashMap<>();
     private static final Map<BlockPos, UUID> roomDoors = new HashMap<>();
     private static final Set<BlockPos> lockedDoors = new HashSet<>();
+    private static final Set<UUID> generatedRoomShells = new HashSet<>();
     private static final ResourceKey<Level> DIMENSION = ModDimensions.INTERIOR_DIM_KEY;
 
     public static BlockPos getInteriorRoom(UUID playerId, MinecraftServer server) {
@@ -35,7 +37,9 @@ public class RoomManager {
 
             ServerLevel level = server.getLevel(DIMENSION);
             if (level != null) {
-                generateBarrierBox(level, doorPos);
+                if (generatedRoomShells.add(id)) {
+                    generateBarrierBox(level, doorPos);
+                }
                 RoomGenerator.generateRoom(level, doorPos);
             }
 
@@ -142,19 +146,143 @@ public class RoomManager {
         int maxX = center.getX() + 128;
         int minZ = center.getZ() - 128;
         int maxZ = center.getZ() + 128;
+        int minY = Math.max(level.getMinBuildHeight(), 0);
+        int maxY = Math.min(level.getMaxBuildHeight() - 1, 256);
 
-        for (int x = minX; x <= maxX; x++) {
-            for (int z = minZ; z <= maxZ; z++) {
-                for (int y = 0; y <= 256; y++) {
-                    boolean isEdgeX = (x == minX || x == maxX);
-                    boolean isEdgeZ = (z == minZ || z == maxZ);
-                    if (isEdgeX || isEdgeZ) {
-                        BlockPos pos = new BlockPos(x, y, z);
-                        if (level.getBlockState(pos).isAir()) {
-                            level.setBlockAndUpdate(pos, Blocks.BARRIER.defaultBlockState());
-                        }
-                    }
+        if (minX > maxX || minZ > maxZ || minY > maxY) {
+            return;
+        }
+
+        int minChunkX = minX >> 4;
+        int maxChunkX = maxX >> 4;
+        int minChunkZ = minZ >> 4;
+        int maxChunkZ = maxZ >> 4;
+
+        BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos();
+        BlockPos.MutableBlockPos checkPos = new BlockPos.MutableBlockPos();
+
+        for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
+            for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
+                boolean edgeChunkX = chunkX == minChunkX || chunkX == maxChunkX;
+                boolean edgeChunkZ = chunkZ == minChunkZ || chunkZ == maxChunkZ;
+                if (!edgeChunkX && !edgeChunkZ) {
+                    continue;
                 }
+
+                ChunkPos chunkPos = new ChunkPos(chunkX, chunkZ);
+
+                int chunkMinX = Math.max(minX, chunkPos.getMinBlockX());
+                int chunkMaxX = Math.min(maxX, chunkPos.getMaxBlockX());
+                int chunkMinZ = Math.max(minZ, chunkPos.getMinBlockZ());
+                int chunkMaxZ = Math.min(maxZ, chunkPos.getMaxBlockZ());
+
+                if (chunkMinX > chunkMaxX || chunkMinZ > chunkMaxZ) {
+                    continue;
+                }
+
+                if (isChunkPerimeterComplete(level, chunkPos, minX, maxX, minZ, maxZ, minY, checkPos)) {
+                    continue;
+                }
+
+                if (chunkPos.getMinBlockX() <= minX && minX <= chunkPos.getMaxBlockX()) {
+                    fillVerticalEdge(level, mutable, minX, chunkMinZ, chunkMaxZ, minY, maxY);
+                }
+                if (chunkPos.getMinBlockX() <= maxX && maxX <= chunkPos.getMaxBlockX()) {
+                    fillVerticalEdge(level, mutable, maxX, chunkMinZ, chunkMaxZ, minY, maxY);
+                }
+
+                if (chunkPos.getMinBlockZ() <= minZ && minZ <= chunkPos.getMaxBlockZ()) {
+                    fillHorizontalEdge(level, mutable, chunkMinX, chunkMaxX, minZ, minX, maxX, minY, maxY);
+                }
+                if (chunkPos.getMinBlockZ() <= maxZ && maxZ <= chunkPos.getMaxBlockZ()) {
+                    fillHorizontalEdge(level, mutable, chunkMinX, chunkMaxX, maxZ, minX, maxX, minY, maxY);
+                }
+
+            }
+        }
+    }
+
+    private static boolean isChunkPerimeterComplete(ServerLevel level, ChunkPos chunkPos,
+                                                    int minX, int maxX, int minZ, int maxZ,
+                                                    int minY, BlockPos.MutableBlockPos checkPos) {
+        int chunkMinX = Math.max(minX, chunkPos.getMinBlockX());
+        int chunkMaxX = Math.min(maxX, chunkPos.getMaxBlockX());
+        int chunkMinZ = Math.max(minZ, chunkPos.getMinBlockZ());
+        int chunkMaxZ = Math.min(maxZ, chunkPos.getMaxBlockZ());
+
+        if (chunkMinX > chunkMaxX || chunkMinZ > chunkMaxZ) {
+            return true;
+        }
+
+        if (chunkPos.getMinBlockX() <= minX && minX <= chunkPos.getMaxBlockX()) {
+            int x = minX;
+            for (int z = chunkMinZ; z <= chunkMaxZ; z++) {
+                checkPos.set(x, minY, z);
+                if (!level.getBlockState(checkPos).is(Blocks.BARRIER)) {
+                    return false;
+                }
+            }
+        }
+
+        if (chunkPos.getMinBlockX() <= maxX && maxX <= chunkPos.getMaxBlockX()) {
+            int x = maxX;
+            for (int z = chunkMinZ; z <= chunkMaxZ; z++) {
+                checkPos.set(x, minY, z);
+                if (!level.getBlockState(checkPos).is(Blocks.BARRIER)) {
+                    return false;
+                }
+            }
+        }
+
+        if (chunkPos.getMinBlockZ() <= minZ && minZ <= chunkPos.getMaxBlockZ()) {
+            int z = minZ;
+            for (int x = chunkMinX; x <= chunkMaxX; x++) {
+                if (x == minX || x == maxX) continue;
+                checkPos.set(x, minY, z);
+                if (!level.getBlockState(checkPos).is(Blocks.BARRIER)) {
+                    return false;
+                }
+            }
+        }
+
+        if (chunkPos.getMinBlockZ() <= maxZ && maxZ <= chunkPos.getMaxBlockZ()) {
+            int z = maxZ;
+            for (int x = chunkMinX; x <= chunkMaxX; x++) {
+                if (x == minX || x == maxX) continue;
+                checkPos.set(x, minY, z);
+                if (!level.getBlockState(checkPos).is(Blocks.BARRIER)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private static void fillVerticalEdge(ServerLevel level, BlockPos.MutableBlockPos mutable,
+                                         int x, int startZ, int endZ, int minY, int maxY) {
+        for (int z = startZ; z <= endZ; z++) {
+            fillColumn(level, mutable, x, z, minY, maxY);
+        }
+    }
+
+    private static void fillHorizontalEdge(ServerLevel level, BlockPos.MutableBlockPos mutable,
+                                           int startX, int endX, int z,
+                                           int minX, int maxX, int minY, int maxY) {
+        for (int x = startX; x <= endX; x++) {
+            if (x == minX || x == maxX) {
+                continue;
+            }
+            fillColumn(level, mutable, x, z, minY, maxY);
+        }
+    }
+
+    private static void fillColumn(ServerLevel level, BlockPos.MutableBlockPos mutable,
+                                   int x, int z, int minY, int maxY) {
+        for (int y = minY; y <= maxY; y++) {
+            mutable.set(x, y, z);
+            if (level.getBlockState(mutable).isAir()) {
+                level.setBlockAndUpdate(mutable, Blocks.BARRIER.defaultBlockState());
             }
         }
     }
