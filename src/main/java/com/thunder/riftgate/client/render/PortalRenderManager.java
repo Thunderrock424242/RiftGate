@@ -10,10 +10,12 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
@@ -25,6 +27,26 @@ public class PortalRenderManager {
     public static final int HEIGHT = 128;
 
     private static final HashMap<UUID, TextureTarget> playerTargets = new HashMap<>();
+    private static final Method SET_POSITION;
+    private static final Method SET_ROTATION;
+
+    static {
+        try {
+            SET_POSITION = Camera.class.getDeclaredMethod("setPosition", double.class, double.class, double.class);
+            SET_POSITION.setAccessible(true);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException("Unable to resolve Camera#setPosition", e);
+        }
+
+        Method rotation;
+        try {
+            rotation = Camera.class.getDeclaredMethod("setRotation", float.class, float.class);
+            rotation.setAccessible(true);
+        } catch (ReflectiveOperationException e) {
+            rotation = null;
+        }
+        SET_ROTATION = rotation;
+    }
 
     public static TextureTarget getOrCreateFramebuffer(UUID playerId) {
         return playerTargets.computeIfAbsent(playerId, id -> {
@@ -34,18 +56,18 @@ public class PortalRenderManager {
         });
     }
 
-    public static void renderPortalPreview(UUID playerId, BlockPos doorPos) {
+    public static boolean renderPortalPreview(UUID playerId, BlockPos doorPos, Direction facing) {
         if (ModConfig.CLIENT.portalRenderMode.get() != ModConfig.PortalRenderMode.SEE_THROUGH) {
-            return;
+            return false;
         }
         Minecraft mc = Minecraft.getInstance();
         MinecraftServer server = mc.getSingleplayerServer();
-        if (mc.level == null || mc.player == null || server == null) return;
+        if (mc.level == null || mc.player == null || server == null) return false;
 
-        if (mc.level.dimension().equals(ModDimensions.INTERIOR_DIM_KEY)) return;
+        if (mc.level.dimension().equals(ModDimensions.INTERIOR_DIM_KEY)) return false;
 
         ServerLevel interiorLevel = server.getLevel(ModDimensions.INTERIOR_DIM_KEY);
-        if (interiorLevel == null) return;
+        if (interiorLevel == null) return false;
 
         BlockPos targetPos = RoomManager.getInteriorRoom(playerId, server);
 
@@ -56,11 +78,18 @@ public class PortalRenderManager {
         Camera camera = new Camera();
         camera.setup(interiorLevel, mc.player, false, false, 0F);
 
+        Direction viewDirection = facing == null ? Direction.SOUTH : facing;
+        Vec3 forward = Vec3.atLowerCornerOf(viewDirection.getNormal()).scale(0.45);
+
         try {
-            Method setPos = Camera.class.getDeclaredMethod("setPosition", double.class, double.class, double.class);
-            setPos.setAccessible(true);
-            setPos.invoke(camera, targetPos.getX() + 0.5, targetPos.getY() + 1.6, targetPos.getZ() + 0.5);
-        } catch (Exception e) {
+            SET_POSITION.invoke(camera,
+                    targetPos.getX() + 0.5 - forward.x,
+                    targetPos.getY() + 1.5,
+                    targetPos.getZ() + 0.5 - forward.z);
+            if (SET_ROTATION != null) {
+                SET_ROTATION.invoke(camera, viewDirection.toYRot(), 0F);
+            }
+        } catch (ReflectiveOperationException e) {
             e.printStackTrace();
         }
 
@@ -68,7 +97,7 @@ public class PortalRenderManager {
         MultiBufferSource.BufferSource buffer = mc.renderBuffers().bufferSource();
         EntityRenderDispatcher dispatcher = mc.getEntityRenderDispatcher();
 
-        AABB renderArea = new AABB(targetPos).inflate(16); // 16 block radius
+        AABB renderArea = new AABB(targetPos).inflate(16);
         List<Entity> entities = interiorLevel.getEntities(null, renderArea);
 
         for (Entity entity : entities) {
@@ -82,5 +111,6 @@ public class PortalRenderManager {
 
         buffer.endBatch();
         mc.getMainRenderTarget().bindWrite(true);
+        return true;
     }
 }

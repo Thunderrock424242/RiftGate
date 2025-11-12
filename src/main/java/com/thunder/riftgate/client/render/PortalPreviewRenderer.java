@@ -39,12 +39,15 @@ public class PortalPreviewRenderer implements BlockEntityRenderer<BlockEntity> {
         var playerId = mc.player.getUUID();
         ModConfig.PortalRenderMode mode = ModConfig.CLIENT.portalRenderMode.get();
 
-        int textureId = -1;
+        boolean hasLiveView = false;
         if (mode == ModConfig.PortalRenderMode.SEE_THROUGH) {
-            PortalRenderManager.renderPortalPreview(playerId, blockEntity.getBlockPos());
+            hasLiveView = PortalRenderManager.renderPortalPreview(playerId, blockEntity.getBlockPos(),
+                    state.getValue(DoorBlock.FACING));
+        }
+
+        if (hasLiveView) {
             var fb = PortalRenderManager.getOrCreateFramebuffer(playerId);
-            textureId = fb.getColorTextureId();
-            RenderSystem.setShaderTexture(0, textureId);
+            RenderSystem.setShaderTexture(0, fb.getColorTextureId());
         } else {
             RenderSystem.setShaderTexture(0, ResourceLocation.fromNamespaceAndPath("minecraft", "textures/block/end_portal.png"));
         }
