@@ -30,8 +30,8 @@ public class PortalPreviewRenderer implements BlockEntityRenderer<BlockEntity> {
         BlockState state = blockEntity.getBlockState();
         if (!(state.getBlock() instanceof DoorBlock)) return;
 
-        boolean isOpen = state.getValue(DoorBlock.OPEN);
-        if (!isOpen || !RoomManager.isLinkedDoor(blockEntity.getBlockPos())) return;
+        if (!RoomManager.isLinkedDoor(blockEntity.getBlockPos())) return;
+        if (RoomManager.isDoorLocked(blockEntity.getBlockPos())) return;
 
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
