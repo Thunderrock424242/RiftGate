@@ -13,6 +13,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.CreativeModeTabs;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModContainer;
@@ -82,7 +83,9 @@ public class RiftGate {
     }
 
     private void addCreative(BuildCreativeModeTabContentsEvent event) {
-
+        if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
+            event.accept(ModItems.RIFT_GATE_KEY.get());
+        }
     }
 
     /**

@@ -2,6 +2,7 @@ package com.thunder.riftgate.items;
 
 import com.thunder.riftgate.MainModClass.RiftGate;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.registries.DeferredRegister;
@@ -14,8 +15,10 @@ public class ModCreativeTabs {
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> RIFT_TAB =
             TABS.register("riftgate_tab", () -> CreativeModeTab.builder()
                     .icon(() -> new ItemStack(ModItems.RIFT_GATE_KEY.get()))
-                    .title(RiftGate.translation("itemGroup.riftgate_tab"))
-                    .displayItems((params, output) -> {
-                        output.accept(ModItems.RIFT_GATE_KEY.get());
-                    }).build());
+                    .title(Component.translatable("itemGroup.riftgate_tab"))
+                    .displayItems((params, output) ->
+                            ModItems.ITEMS.getEntries().stream()
+                                    .map(DeferredHolder::get)
+                                    .forEach(output::accept))
+                    .build());
 }
