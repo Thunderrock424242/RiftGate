@@ -17,5 +17,6 @@ public class ModCreativeTabs {
                     .title(RiftGate.translation("itemGroup.riftgate_tab"))
                     .displayItems((params, output) -> {
                         output.accept(ModItems.RIFT_GATE_KEY.get());
+                        output.accept(ModItems.PORTAL_KEY.get());
                     }).build());
 }

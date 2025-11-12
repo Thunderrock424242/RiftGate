@@ -119,10 +119,16 @@ public class RiftGate {
     private void clientSetup(FMLClientSetupEvent event) {
         event.enqueueWork(() -> {
             // Register custom item property for glowing overlay on portal key
+            ResourceLocation activeProperty = ResourceLocation.parse(MOD_ID + ":active");
             ItemProperties.register(
                     ModItems.RIFT_GATE_KEY.get(),
-                    ResourceLocation.parse(MOD_ID + ":active"),
+                    activeProperty,
                     (stack, world, entity, seed) -> 1.0F // Always active glow
+            );
+            ItemProperties.register(
+                    ModItems.PORTAL_KEY.get(),
+                    activeProperty,
+                    (stack, world, entity, seed) -> 1.0F
             );
 
             // TODO: Future - Register BlockEntityRenderers, custom shaders, etc.

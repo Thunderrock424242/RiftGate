@@ -33,7 +33,7 @@ public class DoorEventHandler {
         boolean isLinkedDoor = RoomManager.isLinkedDoor(doorBase);
         boolean isRoomDoor = RoomManager.isRoomDoor(doorBase);
         if (!isLinkedDoor && !isRoomDoor) {
-            if (heldItem.is(ModItems.RIFT_GATE_KEY.get())) {
+            if (ModItems.isKeyItem(heldItem)) {
                 RoomManager.linkDoor(player.getUUID(), doorBase);
                 player.sendSystemMessage(Component.literal("This door is now linked to your Rift Room."));
                 event.setCanceled(true);
@@ -47,7 +47,7 @@ public class DoorEventHandler {
         boolean isOwner = ownerId != null && ownerId.equals(player.getUUID());
         boolean isLocked = RoomManager.isDoorLocked(doorBase);
 
-        if (player.isShiftKeyDown() && isOwner && !heldItem.is(ModItems.RIFT_GATE_KEY.get())) {
+        if (player.isShiftKeyDown() && isOwner && !ModItems.isKeyItem(heldItem)) {
             if (!isLocked) {
                 RoomManager.lockDoor(doorBase);
                 closeDoor(level, doorBase);
@@ -59,7 +59,7 @@ public class DoorEventHandler {
             return;
         }
 
-        if (heldItem.is(ModItems.RIFT_GATE_KEY.get())) {
+        if (ModItems.isKeyItem(heldItem)) {
             if (!isLinkedDoor) {
                 RoomManager.linkDoor(player.getUUID(), doorBase);
                 player.sendSystemMessage(Component.literal("This door is now linked to your Rift Room."));
