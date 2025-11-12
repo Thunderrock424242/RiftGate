@@ -15,10 +15,9 @@ public class ModCreativeTabs {
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> RIFT_TAB =
             TABS.register("riftgate_tab", () -> CreativeModeTab.builder()
                     .icon(() -> new ItemStack(ModItems.RIFT_GATE_KEY.get()))
-                    .title(Component.translatable("itemGroup.riftgate_tab"))
-                    .displayItems((params, output) ->
-                            ModItems.ITEMS.getEntries().stream()
-                                    .map(DeferredHolder::get)
-                                    .forEach(output::accept))
-                    .build());
+                    .title(RiftGate.translation("itemGroup.riftgate_tab"))
+                    .displayItems((params, output) -> {
+                        output.accept(ModItems.RIFT_GATE_KEY.get());
+                        output.accept(ModItems.PORTAL_KEY.get());
+                    }).build());
 }
