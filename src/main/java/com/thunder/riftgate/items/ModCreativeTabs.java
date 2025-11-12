@@ -2,6 +2,7 @@ package com.thunder.riftgate.items;
 
 import com.thunder.riftgate.MainModClass.RiftGate;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.registries.DeferredRegister;

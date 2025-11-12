@@ -13,6 +13,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.CreativeModeTabs;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModContainer;
@@ -48,13 +49,13 @@ public class RiftGate {
                                                                  IPayloadHandler<T> handler) {
     }
     /**
-     * Instantiates a new Wilderness odyssey api main mod class.
+     * Instantiates a new RiftGate main mod class.
      *
      * @param modEventBus the mod event bus
      * @param container   the container
      */
     public RiftGate(IEventBus modEventBus, ModContainer container) {
-        LOGGER.info("WildernessOdysseyAPI initialized. I will also start to track mod conflicts");
+        LOGGER.info("RiftGate mod initialized; starting mod conflict tracking");
         // Register mod setup and creative tabs
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::addCreative);
@@ -77,12 +78,14 @@ public class RiftGate {
 
     private void commonSetup(final FMLCommonSetupEvent event) {
         event.enqueueWork(() -> {
-            System.out.println("Wilderness Odyssey setup complete!");
+            System.out.println("RiftGate setup complete!");
         });
     }
 
     private void addCreative(BuildCreativeModeTabContentsEvent event) {
-
+        if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
+            event.accept(ModItems.RIFT_GATE_KEY.get());
+        }
     }
 
     /**
