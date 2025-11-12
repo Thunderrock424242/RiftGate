@@ -84,17 +84,9 @@ public class DoorEventHandler {
             return;
         }
 
-        if (player instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
-            if (isLinkedDoor && isOwner && !player.isShiftKeyDown() && !ModItems.isKeyItem(heldItem)) {
-                RoomManager.enterRoom(serverPlayer, doorBase);
-                event.setCanceled(true);
-            } else if (isRoomDoor && isOwner && !player.isShiftKeyDown() && !ModItems.isKeyItem(heldItem)) {
-                RoomManager.exitRoom(serverPlayer, doorBase);
-                event.setCanceled(true);
-            } else if (!isOwner && (isLinkedDoor || isRoomDoor)) {
-                player.sendSystemMessage(Component.literal("This door is attuned to another Rift Room."));
-                event.setCanceled(true);
-            }
+        if (!isOwner && (isLinkedDoor || isRoomDoor)) {
+            player.sendSystemMessage(Component.literal("This door is attuned to another Rift Room."));
+            event.setCanceled(true);
         }
     }
 
