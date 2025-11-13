@@ -16,8 +16,6 @@ public class ModCreativeTabs {
             TABS.register("riftgate_tab", () -> CreativeModeTab.builder()
                     .icon(() -> new ItemStack(ModItems.RIFT_GATE_KEY.get()))
                     .title(RiftGate.translation("itemGroup.riftgate_tab"))
-                    .displayItems((params, output) -> {
-                        output.accept(ModItems.RIFT_GATE_KEY.get());
-                        output.accept(ModItems.PORTAL_KEY.get());
-                    }).build());
+                    .displayItems((params, output) -> output.accept(ModItems.RIFT_GATE_KEY.get()))
+                    .build());
 }

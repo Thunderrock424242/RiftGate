@@ -11,11 +11,9 @@ public class ModItems {
 
     public static final DeferredHolder<Item, Item> RIFT_GATE_KEY = ITEMS.register("rift_gate_key",
             RiftGateKeyItem::new);
-    public static final DeferredHolder<Item, Item> PORTAL_KEY = ITEMS.register("portal_key",
-            PortalKeyItem::new);
 
     public static boolean isKeyItem(ItemStack stack) {
-        return stack.is(RIFT_GATE_KEY.get()) || stack.is(PORTAL_KEY.get());
+        return stack.is(RIFT_GATE_KEY.get());
     }
 
     // You no longer register inside this class — it's done in the mod initializer!

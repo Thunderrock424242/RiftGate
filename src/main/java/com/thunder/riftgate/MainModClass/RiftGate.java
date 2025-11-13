@@ -135,11 +135,6 @@ public class RiftGate {
                     activeProperty,
                     (stack, world, entity, seed) -> 1.0F // Always active glow
             );
-            ItemProperties.register(
-                    ModItems.PORTAL_KEY.get(),
-                    activeProperty,
-                    (stack, world, entity, seed) -> 1.0F
-            );
 
             // TODO: Future - Register BlockEntityRenderers, custom shaders, etc.
         });
