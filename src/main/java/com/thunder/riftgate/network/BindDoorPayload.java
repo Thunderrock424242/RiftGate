@@ -52,8 +52,9 @@ public record BindDoorPayload(BlockPos doorPos) implements CustomPacketPayload {
                 return;
             }
 
-            RoomManager.linkDoor(player.getUUID(), doorBase);
+            RoomManager.linkDoor(player.getUUID(), doorBase, player.level());
             RoomManager.getInteriorRoom(player.getUUID(), player.serverLevel().getServer());
+            RoomManager.syncRoomPreview(player);
             player.sendSystemMessage(Component.literal("This door is now linked to your Rift Room."));
         });
     }

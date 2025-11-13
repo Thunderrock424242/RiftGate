@@ -2,6 +2,7 @@ package com.thunder.riftgate.teleport;
 
 import net.minecraft.core.BlockPos;
 import com.thunder.riftgate.dimension.ModDimensions;
+import com.thunder.riftgate.network.RoomPreviewPayload;
 import com.thunder.riftgate.teleport.RoomGenerator;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -11,14 +12,20 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.RelativeMovement;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.DoorBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.core.Direction;
 
+import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
-import java.util.UUID;
-import java.util.EnumSet;
 import java.util.Set;
+import java.util.UUID;
 
 public class RoomManager {
     private static final HashMap<UUID, BlockPos> playerRooms = new HashMap<>();
@@ -48,7 +55,7 @@ public class RoomManager {
         });
     }
 
-    public static void linkDoor(UUID playerId, BlockPos doorPos) {
+    public static void linkDoor(UUID playerId, BlockPos doorPos, Level level) {
         BlockPos lower = doorPos;
         BlockPos upper = doorPos.above();
         linkedDoors.put(lower, playerId);
@@ -56,6 +63,7 @@ public class RoomManager {
         lockedDoors.remove(lower);
         lockedDoors.remove(upper);
         playerDoors.put(playerId, lower);
+        ensureDoorHasFloor(level, lower);
     }
 
     public static boolean isLinkedDoor(BlockPos pos) {
@@ -323,15 +331,85 @@ public class RoomManager {
         ServerLevel overworld = server.getLevel(Level.OVERWORLD);
         if (returnDoor == null || overworld == null) return;
 
+        BlockState doorState = overworld.getBlockState(returnDoor);
+        Direction facing = doorState.getBlock() instanceof DoorBlock
+                ? doorState.getValue(DoorBlock.FACING)
+                : Direction.NORTH;
+
+        double exitX = returnDoor.getX() + 0.5 + facing.getStepX() * 0.6;
+        double exitZ = returnDoor.getZ() + 0.5 + facing.getStepZ() * 0.6;
+
+        double groundY = returnDoor.getY();
+        BlockPos below = returnDoor.below();
+        if (!overworld.isEmptyBlock(below)) {
+            groundY = below.getY() + 1;
+        }
+
         entity.teleportTo(
                 overworld,
-                returnDoor.getX() + 0.5,
-                returnDoor.getY(),
-                returnDoor.getZ() + 0.5,
+                exitX,
+                groundY,
+                exitZ,
                 EnumSet.noneOf(RelativeMovement.class),
                 entity.getYRot(),
                 entity.getXRot()
         );
+    }
+
+    public static void syncRoomPreview(ServerPlayer player) {
+        MinecraftServer server = player.getServer();
+        if (server == null) return;
+
+        BlockPos doorPos = playerRooms.get(player.getUUID());
+        if (doorPos == null) {
+            doorPos = getInteriorRoom(player.getUUID(), server);
+        }
+
+        ServerLevel level = server.getLevel(DIMENSION);
+        if (doorPos == null || level == null) {
+            return;
+        }
+
+        List<RoomPreviewPayload.BlockEntry> blocks = collectPreviewBlocks(level, doorPos);
+        if (!blocks.isEmpty()) {
+            RoomPreviewPayload.send(player, blocks);
+        }
+    }
+
+    private static List<RoomPreviewPayload.BlockEntry> collectPreviewBlocks(ServerLevel level, BlockPos doorPos) {
+        List<RoomPreviewPayload.BlockEntry> entries = new ArrayList<>();
+        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+
+        for (int dx = -4; dx <= 4; dx++) {
+            for (int dy = 0; dy <= 5; dy++) {
+                for (int dz = -1; dz <= 6; dz++) {
+                    cursor.set(doorPos.getX() + dx, doorPos.getY() + dy, doorPos.getZ() + dz);
+                    BlockState state = level.getBlockState(cursor);
+                    if (state.isAir()) {
+                        continue;
+                    }
+                    entries.add(new RoomPreviewPayload.BlockEntry(
+                            (byte) dx,
+                            (byte) dy,
+                            (byte) dz,
+                            Block.BLOCK_STATE_REGISTRY.getId(state)
+                    ));
+                }
+            }
+        }
+
+        return entries;
+    }
+
+    private static void ensureDoorHasFloor(Level level, BlockPos doorPos) {
+        if (level == null) {
+            return;
+        }
+
+        BlockPos below = doorPos.below();
+        if (level.isEmptyBlock(below)) {
+            level.setBlockAndUpdate(below, Blocks.SMOOTH_STONE.defaultBlockState());
+        }
     }
     public static boolean roomExists(UUID playerId) {
         return playerRooms.containsKey(playerId);
