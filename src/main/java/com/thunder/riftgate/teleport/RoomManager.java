@@ -371,9 +371,7 @@ public class RoomManager {
         }
 
         List<RoomPreviewPayload.BlockEntry> blocks = collectPreviewBlocks(level, doorPos);
-        if (!blocks.isEmpty()) {
-            RoomPreviewPayload.send(player, blocks);
-        }
+        RoomPreviewPayload.send(player, blocks);
     }
 
     private static List<RoomPreviewPayload.BlockEntry> collectPreviewBlocks(ServerLevel level, BlockPos doorPos) {
@@ -381,7 +379,7 @@ public class RoomManager {
         BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
 
         for (int dx = -4; dx <= 4; dx++) {
-            for (int dy = 0; dy <= 5; dy++) {
+            for (int dy = -1; dy <= 5; dy++) {
                 for (int dz = -1; dz <= 6; dz++) {
                     cursor.set(doorPos.getX() + dx, doorPos.getY() + dy, doorPos.getZ() + dz);
                     BlockState state = level.getBlockState(cursor);

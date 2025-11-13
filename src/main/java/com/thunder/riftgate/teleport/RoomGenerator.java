@@ -9,42 +9,34 @@ import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
 
 public class RoomGenerator {
     /**
-     * Generates a simple interior room. The provided {@code doorPos} represents
-     * the inside bottom half of the doorway that players spawn at.
+     * Generates a minimal interior consisting of a freestanding door on a small
+     * platform. The provided {@code doorPos} represents the inside bottom half
+     * of the doorway that players spawn at.
      */
     public static void generateRoom(ServerLevel level, BlockPos doorPos) {
-        int width = 7;
-        int height = 5;
-        int depth = 7;
+        // Build a simple 5x5 smooth-stone platform under the doorway so players
+        // always have solid ground but keep the area otherwise open.
+        BlockPos floorBase = doorPos.below();
+        for (int dx = -2; dx <= 2; dx++) {
+            for (int dz = -2; dz <= 2; dz++) {
+                BlockPos floorPos = floorBase.offset(dx, 0, dz);
+                level.setBlockAndUpdate(floorPos, Blocks.SMOOTH_STONE.defaultBlockState());
 
-        // centre of the room is half the depth away from the door
-        BlockPos origin = doorPos.offset(0, 0, depth / 2);
-
-        for (int x = -width / 2; x <= width / 2; x++) {
-            for (int y = 0; y <= height; y++) {
-                for (int z = -depth / 2; z <= depth / 2; z++) {
-                    BlockPos current = origin.offset(x, y, z);
-
-                    // Floor and ceiling
-                    if (y == 0 || y == height) {
-                        level.setBlockAndUpdate(current, Blocks.SMOOTH_STONE.defaultBlockState());
-                    }
-                    // Walls
-                    else if (x == -width / 2 || x == width / 2 || z == -depth / 2 || z == depth / 2) {
-                        level.setBlockAndUpdate(current, Blocks.STONE_BRICKS.defaultBlockState());
-                    }
-                    // Air space
-                    else {
-                        level.setBlockAndUpdate(current, Blocks.AIR.defaultBlockState());
+                // Clear headroom above the platform to remove any previously
+                // generated structure blocks.
+                for (int dy = 1; dy <= 4; dy++) {
+                    BlockPos airPos = floorPos.above(dy);
+                    if (!airPos.equals(doorPos) && !airPos.equals(doorPos.above())) {
+                        level.setBlockAndUpdate(airPos, Blocks.AIR.defaultBlockState());
                     }
                 }
             }
         }
 
-        // create the exit door on the wall where the player appears
-        BlockPos frame1 = doorPos.offset(0, 1, -1);
-        level.setBlockAndUpdate(frame1, Blocks.STONE_BRICKS.defaultBlockState());
-        level.setBlockAndUpdate(frame1.above(), Blocks.STONE_BRICKS.defaultBlockState());
+        // Ensure the doorway itself is free of stray blocks before placing the
+        // Rift door.
+        level.setBlockAndUpdate(doorPos, Blocks.AIR.defaultBlockState());
+        level.setBlockAndUpdate(doorPos.above(), Blocks.AIR.defaultBlockState());
 
         level.setBlockAndUpdate(doorPos,
                 ModBlocks.RIFT_DOOR.get().defaultBlockState()
