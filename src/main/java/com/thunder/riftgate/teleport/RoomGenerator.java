@@ -2,6 +2,7 @@ package com.thunder.riftgate.teleport;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import com.thunder.riftgate.blocks.ModBlocks;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
@@ -46,11 +47,11 @@ public class RoomGenerator {
         level.setBlockAndUpdate(frame1.above(), Blocks.STONE_BRICKS.defaultBlockState());
 
         level.setBlockAndUpdate(doorPos,
-                Blocks.OAK_DOOR.defaultBlockState()
+                ModBlocks.RIFT_DOOR.get().defaultBlockState()
                         .setValue(DoorBlock.FACING, net.minecraft.core.Direction.SOUTH)
                         .setValue(DoorBlock.HALF, DoubleBlockHalf.LOWER));
         level.setBlockAndUpdate(doorPos.above(),
-                Blocks.OAK_DOOR.defaultBlockState()
+                ModBlocks.RIFT_DOOR.get().defaultBlockState()
                         .setValue(DoorBlock.FACING, net.minecraft.core.Direction.SOUTH)
                         .setValue(DoorBlock.HALF, DoubleBlockHalf.UPPER));
     }

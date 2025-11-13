@@ -1,6 +1,8 @@
 package com.thunder.riftgate.MainModClass;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.thunder.riftgate.blockentity.ModBlockEntities;
+import com.thunder.riftgate.blocks.ModBlocks;
 import com.thunder.riftgate.config.ModConfig;
 import com.thunder.riftgate.events.DoorEventHandler;
 import com.thunder.riftgate.dimension.ModDimensions;
@@ -69,6 +71,8 @@ public class RiftGate {
             ClientKeyHandler.init(modEventBus);
         }
 
+        ModBlocks.BLOCKS.register(modEventBus);
+        ModBlockEntities.BLOCK_ENTITIES.register(modEventBus);
         ModItems.ITEMS.register(modEventBus);
         // Same for blocks, creative tabs, etc.
         ModCreativeTabs.TABS.register(modEventBus);
