@@ -11,5 +11,6 @@ public final class ModNetworking {
     public static void register(RegisterPayloadHandlersEvent event) {
         PayloadRegistrar registrar = event.registrar(NETWORK_VERSION);
         registrar.playToServer(BindDoorPayload.TYPE, BindDoorPayload.STREAM_CODEC, BindDoorPayload::handle);
+        registrar.playToClient(RoomPreviewPayload.TYPE, RoomPreviewPayload.STREAM_CODEC, RoomPreviewPayload::handle);
     }
 }

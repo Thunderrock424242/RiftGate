@@ -1,25 +1,25 @@
 package com.thunder.riftgate.client.render;
 
 import com.mojang.blaze3d.pipeline.TextureTarget;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.thunder.riftgate.client.render.RoomPreviewCache;
 import com.thunder.riftgate.config.ModConfig;
-import com.thunder.riftgate.dimension.ModDimensions;
-import com.thunder.riftgate.teleport.RoomManager;
-import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.client.renderer.block.BlockRenderDispatcher;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.phys.AABB;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
+import org.joml.Matrix4f;
+import org.joml.Matrix4fStack;
+import com.mojang.blaze3d.vertex.VertexSorting;
 
-import java.lang.reflect.Method;
 import java.util.HashMap;
-import java.util.List;
 import java.util.UUID;
 
 public class PortalRenderManager {
@@ -27,26 +27,6 @@ public class PortalRenderManager {
     public static final int HEIGHT = 128;
 
     private static final HashMap<UUID, TextureTarget> playerTargets = new HashMap<>();
-    private static final Method SET_POSITION;
-    private static final Method SET_ROTATION;
-
-    static {
-        try {
-            SET_POSITION = Camera.class.getDeclaredMethod("setPosition", double.class, double.class, double.class);
-            SET_POSITION.setAccessible(true);
-        } catch (ReflectiveOperationException e) {
-            throw new RuntimeException("Unable to resolve Camera#setPosition", e);
-        }
-
-        Method rotation;
-        try {
-            rotation = Camera.class.getDeclaredMethod("setRotation", float.class, float.class);
-            rotation.setAccessible(true);
-        } catch (ReflectiveOperationException e) {
-            rotation = null;
-        }
-        SET_ROTATION = rotation;
-    }
 
     public static TextureTarget getOrCreateFramebuffer(UUID playerId) {
         return playerTargets.computeIfAbsent(playerId, id -> {
@@ -60,57 +40,84 @@ public class PortalRenderManager {
         if (ModConfig.CLIENT.portalRenderMode.get() != ModConfig.PortalRenderMode.SEE_THROUGH) {
             return false;
         }
+
         Minecraft mc = Minecraft.getInstance();
-        MinecraftServer server = mc.getSingleplayerServer();
-        if (mc.level == null || mc.player == null || server == null) return false;
+        if (mc.level == null || mc.player == null) {
+            return false;
+        }
 
-        if (mc.level.dimension().equals(ModDimensions.INTERIOR_DIM_KEY)) return false;
-
-        ServerLevel interiorLevel = server.getLevel(ModDimensions.INTERIOR_DIM_KEY);
-        if (interiorLevel == null) return false;
-
-        BlockPos targetPos = RoomManager.getInteriorRoom(playerId, server);
+        RoomPreviewCache.RoomPreviewSnapshot snapshot = RoomPreviewCache.get(playerId);
+        if (snapshot == null || snapshot.blocks().isEmpty()) {
+            return false;
+        }
 
         TextureTarget fb = getOrCreateFramebuffer(playerId);
         fb.bindWrite(true);
         fb.clear(Minecraft.ON_OSX);
 
-        Camera camera = new Camera();
-        camera.setup(interiorLevel, mc.player, false, false, 0F);
-
-        Direction viewDirection = facing == null ? Direction.SOUTH : facing;
+        Direction viewDirection = facing == null ? Direction.SOUTH : facing.getOpposite();
         Vec3 forward = Vec3.atLowerCornerOf(viewDirection.getNormal()).scale(0.45);
+        Vec3 cameraPos = new Vec3(
+                doorPos.getX() + 0.5 - forward.x,
+                doorPos.getY() + 1.4,
+                doorPos.getZ() + 0.5 - forward.z
+        );
 
-        try {
-            SET_POSITION.invoke(camera,
-                    targetPos.getX() + 0.5 - forward.x,
-                    targetPos.getY() + 1.5,
-                    targetPos.getZ() + 0.5 - forward.z);
-            if (SET_ROTATION != null) {
-                SET_ROTATION.invoke(camera, viewDirection.toYRot(), 0F);
-            }
-        } catch (ReflectiveOperationException e) {
-            e.printStackTrace();
-        }
+        float yaw = viewDirection.toYRot();
 
+        setupMatrices(cameraPos, yaw);
+        renderSnapshot(mc, doorPos, snapshot);
+        restoreMatrices(mc);
+
+        return true;
+    }
+
+    private static void setupMatrices(Vec3 cameraPos, float yaw) {
+        RenderSystem.viewport(0, 0, WIDTH, HEIGHT);
+        RenderSystem.enableDepthTest();
+        RenderSystem.backupProjectionMatrix();
+        Matrix4f projection = new Matrix4f().setPerspective((float)Math.toRadians(60.0F), (float) WIDTH / HEIGHT, 0.05F, 50.0F);
+        RenderSystem.setProjectionMatrix(projection, VertexSorting.DISTANCE_TO_ORIGIN);
+
+        Matrix4fStack mvStack = RenderSystem.getModelViewStack();
+        mvStack.pushMatrix();
+        mvStack.identity();
+        mvStack.rotateY((float)Math.toRadians(180F - yaw));
+        mvStack.translate((float)-cameraPos.x, (float)-cameraPos.y, (float)-cameraPos.z);
+        RenderSystem.applyModelViewMatrix();
+    }
+
+    private static void restoreMatrices(Minecraft mc) {
+        Matrix4fStack mvStack = RenderSystem.getModelViewStack();
+        mvStack.popMatrix();
+        RenderSystem.applyModelViewMatrix();
+        RenderSystem.restoreProjectionMatrix();
+        RenderSystem.disableDepthTest();
+        mc.getMainRenderTarget().bindWrite(true);
+        RenderSystem.viewport(0, 0, mc.getWindow().getWidth(), mc.getWindow().getHeight());
+    }
+
+    private static void renderSnapshot(Minecraft mc, BlockPos doorPos, RoomPreviewCache.RoomPreviewSnapshot snapshot) {
+        BlockRenderDispatcher dispatcher = mc.getBlockRenderer();
+        ByteBufferBuilder builder = new ByteBufferBuilder(262144);
+        MultiBufferSource.BufferSource buffer = MultiBufferSource.immediate(builder);
         PoseStack poseStack = new PoseStack();
-        MultiBufferSource.BufferSource buffer = mc.renderBuffers().bufferSource();
-        EntityRenderDispatcher dispatcher = mc.getEntityRenderDispatcher();
 
-        AABB renderArea = new AABB(targetPos).inflate(16);
-        List<Entity> entities = interiorLevel.getEntities(null, renderArea);
-
-        for (Entity entity : entities) {
-            if (entity != null && entity.isAlive()) {
-                double dx = entity.getX() - targetPos.getX();
-                double dy = entity.getY() - targetPos.getY();
-                double dz = entity.getZ() - targetPos.getZ();
-                dispatcher.render(entity, dx, dy, dz, 0F, 1F, poseStack, buffer, 15728880);
+        for (RoomPreviewCache.BlockInstance block : snapshot.blocks()) {
+            BlockState state = block.state();
+            if (state == null || state.isAir()) {
+                continue;
             }
+            poseStack.pushPose();
+            poseStack.translate(
+                    doorPos.getX() + block.dx(),
+                    doorPos.getY() + block.dy(),
+                    doorPos.getZ() + block.dz()
+            );
+            dispatcher.renderSingleBlock(state, poseStack, buffer, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
+            poseStack.popPose();
         }
 
         buffer.endBatch();
-        mc.getMainRenderTarget().bindWrite(true);
-        return true;
     }
 }

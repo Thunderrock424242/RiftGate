@@ -3,6 +3,7 @@ package com.thunder.riftgate.events;
 import com.thunder.riftgate.items.ModItems;
 import com.thunder.riftgate.teleport.RoomManager;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -34,7 +35,10 @@ public class DoorEventHandler {
         boolean isRoomDoor = RoomManager.isRoomDoor(doorBase);
         if (!isLinkedDoor && !isRoomDoor) {
             if (ModItems.isKeyItem(heldItem)) {
-                RoomManager.linkDoor(player.getUUID(), doorBase);
+                RoomManager.linkDoor(player.getUUID(), doorBase, level);
+                if (player instanceof ServerPlayer serverPlayer) {
+                    RoomManager.syncRoomPreview(serverPlayer);
+                }
                 player.sendSystemMessage(Component.literal("This door is now linked to your Rift Room."));
                 event.setCanceled(true);
             }
