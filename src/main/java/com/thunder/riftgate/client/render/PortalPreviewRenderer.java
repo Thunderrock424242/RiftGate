@@ -6,6 +6,7 @@ import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexFormat;
+import com.thunder.riftgate.blockentity.RiftDoorBlockEntity;
 import com.thunder.riftgate.config.ModConfig;
 import com.thunder.riftgate.teleport.RoomManager;
 import net.minecraft.client.Minecraft;
@@ -14,17 +15,16 @@ import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.DoorBlock;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Matrix4f;
 
-public class PortalPreviewRenderer implements BlockEntityRenderer<BlockEntity> {
+public class PortalPreviewRenderer implements BlockEntityRenderer<RiftDoorBlockEntity> {
 
     public PortalPreviewRenderer(BlockEntityRendererProvider.Context context) {}
 
     @Override
-    public void render(BlockEntity blockEntity, float partialTicks, @NotNull PoseStack poseStack,
+    public void render(RiftDoorBlockEntity blockEntity, float partialTicks, @NotNull PoseStack poseStack,
                        net.minecraft.client.renderer.@NotNull MultiBufferSource buffer, int combinedLight, int combinedOverlay) {
 
         BlockState state = blockEntity.getBlockState();
